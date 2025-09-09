@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 一个高性能、功能完整的 Swift K 线图表库，专为 iOS 金融应用设计。采用先进的架构设计，支持多种技术指标，提供流畅的用户交互体验。
-
+参考火币的的UI设计进行实现，使用的数据也是来自于火币的接口
 ## ✨ 特性
 
 ### 📊 完整的技术指标支持
@@ -40,6 +40,11 @@
 - **使用纯函数编码**: 代码更简洁，更易于维护，用户可以快速的测试某一个组件的绘制，单独拿出来使用
 - **丰富文档**: 详细的使用说明和架构文档
 
+### 不足
+- **缺失测试用例**
+- **缺失cocoapods和swift package 支持，主要是提供学习，使用纯函数的方式，为了理解代码后续能自己根据自己需求实现不同的模块**
+- **缺失ci/cd**
+
 ## 📱 效果预览
 
 <table>
@@ -64,6 +69,29 @@
 </td>
 </tr>
 </table>
+- 流畅度
+
+![scroll_compress](https://github.com/user-attachments/assets/5e2a6156-d08f-411b-93cf-c4eb0f6d319e)
+
+- 放大缩小
+
+![scale_compress](https://github.com/user-attachments/assets/c5154625-fb2c-4169-80cb-d9d7925cf085)
+
+- 长按移动
+
+![longpressAndScroll](https://github.com/user-attachments/assets/6806d6f7-2255-46c2-946b-201246211622)
+
+- 指标
+
+![indicator_compress](https://github.com/user-attachments/assets/0057e993-0cb8-4701-9249-6c25f81bb101)
+
+- 内存指标 （真机，2000条数据）
+
+<img width="2516" height="1128" alt="d43acc8ea06886b118bfc2ddac5e0d34" src="https://github.com/user-attachments/assets/b97b5287-3561-452e-89cd-0c22fa9e53f0" />
+
+
+
+
 
 <!-- ## 🚀 快速开始 -->
 
