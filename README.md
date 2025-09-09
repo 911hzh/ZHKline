@@ -64,6 +64,20 @@
 </td>
 </tr>
 </table>
+- 流畅度
+![scroll_compress](https://github.com/user-attachments/assets/5e2a6156-d08f-411b-93cf-c4eb0f6d319e)
+
+- 放大缩小
+![scale_compress](https://github.com/user-attachments/assets/c5154625-fb2c-4169-80cb-d9d7925cf085)
+
+- 长按移动
+![longpressAndScroll](https://github.com/user-attachments/assets/6806d6f7-2255-46c2-946b-201246211622)
+
+- 指标
+![indicator_compress](https://github.com/user-attachments/assets/0057e993-0cb8-4701-9249-6c25f81bb101)
+
+
+
 
 <!-- ## 🚀 快速开始 -->
 
