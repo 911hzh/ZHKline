@@ -3,9 +3,12 @@
 ![Swift](https://img.shields.io/badge/Swift-5.0+-orange.svg)
 ![iOS](https://img.shields.io/badge/iOS-13.0+-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
+![CI](https://github.com/911hzh/ZHKline/workflows/CI/badge.svg)
+![SwiftLint](https://img.shields.io/badge/SwiftLint-passing-brightgreen.svg)
 
 一个高性能、功能完整的 Swift K 线图表库，专为 iOS 金融应用设计。采用先进的架构设计，支持多种技术指标，提供流畅的用户交互体验。
-参考火币的的UI设计进行实现，使用的数据也是来自于火币的接口
+参考火币的的 UI 设计进行实现，使用的数据也是来自于火币的接口
+
 ## ✨ 特性
 
 ### 📊 完整的技术指标支持
@@ -40,10 +43,13 @@
 - **使用纯函数编码**: 代码更简洁，更易于维护，用户可以快速的测试某一个组件的绘制，单独拿出来使用
 - **丰富文档**: 详细的使用说明和架构文档
 
-### 不足
-- **缺失测试用例**
-- **缺失cocoapods和swift package 支持，主要是提供学习，使用纯函数的方式，为了理解代码后续能自己根据自己需求实现不同的模块**
-- **缺失ci/cd**
+### 🚀 持续集成/持续部署 (CI/CD)
+
+- **GitHub Actions**: 自动化构建、测试和代码质量检查
+- **代码质量**: SwiftLint 自动检查代码风格和最佳实践
+- **分支保护**: develop 和 master 分支受到保护，必须通过 Pull Request 和代码审查
+- **自动化测试**: 单元测试和 UI 测试自动运行
+- **预提交钩子**: 本地提交前自动进行代码质量检查
 
 ## 📱 效果预览
 
@@ -85,13 +91,9 @@
 
 ![indicator_compress](https://github.com/user-attachments/assets/0057e993-0cb8-4701-9249-6c25f81bb101)
 
-- 内存指标 （真机，2000条数据）
+- 内存指标 （真机，2000 条数据）
 
 <img width="2516" height="1128" alt="d43acc8ea06886b118bfc2ddac5e0d34" src="https://github.com/user-attachments/assets/b97b5287-3561-452e-89cd-0c22fa9e53f0" />
-
-
-
-
 
 <!-- ## 🚀 快速开始 -->
 
@@ -230,6 +232,61 @@ ZHKLine 采用先进的架构设计，确保高性能和可维护性：
 原始数据 → 技术指标计算 → 位置计算 → 渲染绘制 → 用户交互
 ```
 
+## ⚙️ CI/CD 设置
+
+### 🔧 开发环境配置
+
+```bash
+# 克隆项目
+git clone https://github.com/your-username/ZHKline.git
+cd ZHKline
+
+# 安装Git hooks和开发工具
+./scripts/install-hooks.sh
+
+# 验证SwiftLint安装
+swiftlint version
+```
+
+### 🛡️ 分支保护规则
+
+- **master/main**: 生产分支，需要 PR + 代码审查
+- **develop**: 开发分支，需要 PR + CI 检查通过
+- **feature/\***: 功能分支，从 develop 创建
+
+### 📋 工作流程
+
+1. **创建功能分支**
+
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **开发和提交** (会自动触发代码质量检查)
+
+   ```bash
+   git add .
+   git commit -m "feat(component): 添加新功能描述"
+   ```
+
+3. **推送并创建 PR**
+   ```bash
+   git push origin feature/your-feature-name
+   # 在 GitHub 创建 Pull Request 到 develop 分支
+   ```
+
+### 📊 代码质量保证
+
+- ✅ **SwiftLint**: 代码风格和最佳实践检查
+- ✅ **单元测试**: 自动运行所有测试用例
+- ✅ **UI 测试**: 关键功能的界面测试
+- ✅ **代码覆盖率**: 测试覆盖率监控
+- ✅ **预提交检查**: 本地提交前自动验证
+
+详细的 CI/CD 配置请参考 [CI/CD 设置指南](docs/CI_CD_SETUP.md)
+
 ## 🤝 贡献
 
 我们欢迎所有形式的贡献！
@@ -238,16 +295,19 @@ ZHKLine 采用先进的架构设计，确保高性能和可维护性：
 
 1. Fork 这个项目
 2. 创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
+3. 提交您的更改 (`git commit -m 'feat: Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 创建一个 Pull Request
 
 ### 贡献指南
 
-- 遵循现有的代码风格
+- 遵循现有的代码风格 (SwiftLint 会自动检查)
 - 添加必要的测试用例
 - 更新相关文档
-- 确保所有测试通过
+- 确保所有 CI 检查通过
+- 获得至少一个审查者的批准
+
+详细的贡献指南请参考 [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 📄 许可证
 

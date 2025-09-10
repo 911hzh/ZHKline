@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main, master]
+  pull_request:
+    branches: [develop, main, master]
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Show available simulators
+        run: xcrun simctl list devicetypes
+
+      - name: Cache Xcode DerivedData
+        uses: actions/cache@v3
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-xcode-deriveddata-${{ hashFiles('**/*.xcodeproj/**') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-deriveddata-
+
+      - name: Build and Test
+        run: |
+          xcodebuild clean build test \
+            -project ZHKLine.xcodeproj \
+            -scheme ZHKLine \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE="" \
+            | xcpretty && exit ${PIPESTATUS[0]}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: test-results
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+
+      - name: Code Coverage
+        run: |
+          xcodebuild test \
+            -project ZHKLine.xcodeproj \
+            -scheme ZHKLine \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -enableCodeCoverage YES \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Generate code coverage report
+        run: |
+          xcrun xccov view --report --json ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult > coverage.json
+
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.json
+
+  swiftlint:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint
+
+      - name: SwiftLint
+        run: |
+          swiftlint --reporter github-actions-logging
