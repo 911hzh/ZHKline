@@ -82,51 +82,32 @@ jobs:
           # 智能选择可用的目标
           echo "🎯 智能选择构建目标..."
 
-          # 首先显示当前可用的 iOS 运行时
-          echo "🔍 检查当前可用的 iOS 运行时..."
+          # 首先检查是否有可用的 iOS 运行时
+          echo "🔍 检查可用的 iOS 运行时..."
           AVAILABLE_RUNTIMES=$(xcrun simctl list runtimes | grep "iOS" || echo "")
 
-          if [ -n "$AVAILABLE_RUNTIMES" ]; then
-            echo "✅ 当前可用的 iOS 运行时:"
-            echo "$AVAILABLE_RUNTIMES"
+          if [ -z "$AVAILABLE_RUNTIMES" ]; then
+            echo "❌ 没有找到 iOS 运行时，尝试下载..."
+            echo "📥 下载 iOS 运行时..."
+            
+            # 尝试下载 iOS 平台
+            xcodebuild -downloadPlatform iOS || echo "下载失败，但继续尝试"
+            
+            # 再次检查
+            echo "📋 下载后的运行时状态:"
+            xcrun simctl list runtimes | grep iOS || echo "仍然没有 iOS 运行时"
           else
-            echo "❌ 当前没有 iOS 运行时"
+            echo "✅ 找到可用的 iOS 运行时:"
+            echo "$AVAILABLE_RUNTIMES"
           fi
 
           # 获取最后一个（最新）可用的 iOS 版本
           LATEST_IOS_VERSION=$(xcrun simctl list runtimes | grep "iOS" | tail -1 | awk '{print $2}' | sed 's/[()]//')
           if [ -n "$LATEST_IOS_VERSION" ]; then
-            echo "🎯 检测到最新可用的 iOS 版本: $LATEST_IOS_VERSION"
+            echo "🎯 将使用最后一个（最新）可用的 iOS 版本: $LATEST_IOS_VERSION"
           else
-            echo "❌ 无法获取 iOS 版本"
-            LATEST_IOS_VERSION="18.3"  # 设置一个默认版本
-          fi
-
-          # 检查需要的版本是否存在，如果不存在就下载
-          TARGET_VERSION="$LATEST_IOS_VERSION"
-          echo "🔍 验证目标版本 iOS $TARGET_VERSION 是否可用..."
-
-          if xcrun simctl list runtimes | grep -q "iOS $TARGET_VERSION"; then
-            echo "✅ iOS $TARGET_VERSION 已存在"
-          else
-            echo "❌ iOS $TARGET_VERSION 不存在，开始下载..."
-            echo "📥 下载 iOS $TARGET_VERSION 平台..."
-            
-            # 尝试多种下载方法
-            xcodebuild -downloadPlatform iOS || echo "方法1失败"
-            xcrun simctl runtime download "iOS $TARGET_VERSION" 2>/dev/null || echo "方法2失败"
-            xcodebuild -downloadAllPlatforms 2>/dev/null || echo "方法3失败"
-            
-            # 验证下载结果
-            echo "📋 下载后的运行时状态:"
-            xcrun simctl list runtimes | grep iOS || echo "仍然没有找到 iOS 运行时"
-            
-            # 重新获取可用版本
-            NEW_LATEST=$(xcrun simctl list runtimes | grep "iOS" | tail -1 | awk '{print $2}' | sed 's/[()]//')
-            if [ -n "$NEW_LATEST" ]; then
-              LATEST_IOS_VERSION="$NEW_LATEST"
-              echo "🔄 更新使用版本: $LATEST_IOS_VERSION"
-            fi
+            echo "⚠️  无法获取 iOS 版本，将使用 latest"
+            LATEST_IOS_VERSION="latest"
           fi
 
           # 尝试多个设备选项（按优先级）
