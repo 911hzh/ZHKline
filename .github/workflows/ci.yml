@@ -51,8 +51,33 @@ jobs:
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: Verify Xcode toolchain
+        run: |
+          echo "=== 🔧 Xcode 工具链验证和修复 ==="
+          
+          echo "📋 1. 当前 Xcode 选择:"
+          xcode-select -p
+          
+          echo "📋 2. 验证 Xcode 是否正确选择:"
+          if xcode-select -p | grep -q "CommandLineTools"; then
+            echo "❌ 检测到使用 Command Line Tools，需要切换到 Xcode"
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+            echo "✅ 已切换到 Xcode 16.2"
+          else
+            echo "✅ 已正确选择 Xcode"
+          fi
+          
+          echo "📋 3. 验证 Xcode 路径和版本:"
+          xcodebuild -version
+          
+          echo "📋 4. 验证 iOS SDK 可用性:"
+          xcodebuild -showsdks | grep -E "iphoneos|iphonesimulator" | head -5
+          
+          echo "📋 5. 验证模拟器工具可用性:"
+          xcrun simctl help | head -3
+          
+          echo "📋 6. 当前开发者目录结构:"
+          ls -la "$(xcode-select -p)" | head -10
 
       - name: Install Fastlane via Ruby Gem
         run: |
@@ -64,14 +89,48 @@ jobs:
       - name: Auto-detect available simulators
         run: |
           echo "=== 🔍 完整的模拟器环境检测 ==="
-
-          echo "📋 1. Xcode 和工具链信息:"
+          
+          echo "📋 1. 再次验证 Xcode 工具链:"
+          echo "当前开发者目录: $(xcode-select -p)"
+          
+          echo "📋 2. Xcode 和工具链信息:"
           xcodebuild -version
-          xcrun --show-sdk-path
-          xcrun --show-sdk-version
+          
+          # 使用正确的方法获取 iOS SDK 信息
+          echo "📋 3. iOS SDK 路径和版本:"
+          if xcrun --sdk iphoneos --show-sdk-path 2>/dev/null; then
+            echo "iOS SDK 路径: $(xcrun --sdk iphoneos --show-sdk-path)"
+            echo "iOS SDK 版本: $(xcrun --sdk iphoneos --show-sdk-version)"
+          else
+            echo "❌ iOS SDK 不可用"
+          fi
+          
+          if xcrun --sdk iphonesimulator --show-sdk-path 2>/dev/null; then
+            echo "iOS 模拟器 SDK 路径: $(xcrun --sdk iphonesimulator --show-sdk-path)"
+            echo "iOS 模拟器 SDK 版本: $(xcrun --sdk iphonesimulator --show-sdk-version)"
+          else
+            echo "❌ iOS 模拟器 SDK 不可用"
+          fi
 
-          echo "📋 2. 所有可用的 iOS SDK:"
-          xcrun simctl list runtimes ios
+          echo "📋 4. 验证 Xcode 应用是否存在:"
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            echo "✅ Xcode 16.2 应用存在"
+            ls -la "/Applications/Xcode_16.2.app/Contents/Developer/"
+          else
+            echo "❌ Xcode 16.2 应用不存在，查找可用的 Xcode:"
+            ls -la /Applications/ | grep -i xcode
+          fi
+          
+          echo "📋 5. 所有可用的 iOS SDK (通过 xcodebuild):"
+          xcodebuild -showsdks | grep -E "iphoneos|iphonesimulator"
+          
+          echo "📋 6. 所有可用的 iOS 运行时 (通过 simctl):"
+          if xcrun simctl list runtimes ios 2>/dev/null; then
+            echo "✅ simctl 运行正常"
+          else
+            echo "❌ simctl 运行失败，尝试手动检查:"
+            xcrun simctl list runtimes 2>&1 || echo "simctl 完全不可用"
+          fi
 
           echo "📋 3. 所有 iOS 版本:"
           xcrun simctl list devices ios | grep -E "-- iOS [0-9]+\.[0-9]+ --"
@@ -82,34 +141,58 @@ jobs:
           echo "📋 5. 设备状态详情:"
           xcrun simctl list devices available | grep "iPhone" | head -5
 
-          # 获取最新的 iOS 版本
-          LATEST_IOS=$(xcrun simctl list devices ios | grep -E "-- iOS [0-9]+\.[0-9]+ --" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
-          echo "🎯 检测到最新 iOS 版本: $LATEST_IOS"
-
-          # 检查是否成功获取版本
+          # 获取最新的 iOS 版本 - 使用多种方法
+          echo "🎯 尝试检测 iOS 版本..."
+          
+          # 方法1: 从 simctl devices 检测
+          LATEST_IOS=$(xcrun simctl list devices ios 2>/dev/null | grep -E "-- iOS [0-9]+\.[0-9]+ --" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/' 2>/dev/null)
+          
+          # 方法2: 从 simctl runtimes 检测
           if [ -z "$LATEST_IOS" ]; then
-            echo "❌ 无法检测到 iOS 版本，显示完整输出:"
-            xcrun simctl list devices ios
-            echo "尝试使用备用方法:"
-            LATEST_IOS=$(xcrun simctl list runtimes | grep "iOS" | tail -1 | awk '{print $2}' | sed 's/[()]//')
-            echo "备用方法检测到: $LATEST_IOS"
+            echo "方法1失败，尝试方法2..."
+            LATEST_IOS=$(xcrun simctl list runtimes 2>/dev/null | grep "iOS" | tail -1 | awk '{print $2}' | sed 's/[()]//' 2>/dev/null)
           fi
+          
+          # 方法3: 从 xcodebuild showsdks 检测
+          if [ -z "$LATEST_IOS" ]; then
+            echo "方法2失败，尝试方法3..."
+            LATEST_IOS=$(xcodebuild -showsdks 2>/dev/null | grep "iphonesimulator" | tail -1 | awk '{print $NF}' | sed 's/iphonesimulator//' 2>/dev/null)
+          fi
+          
+          # 方法4: 使用固定的已知版本
+          if [ -z "$LATEST_IOS" ]; then
+            echo "所有自动检测方法失败，使用默认版本..."
+            # 根据 Xcode 16.2 使用合理的默认版本
+            LATEST_IOS="18.2"
+          fi
+          
+          echo "🎯 最终确定的 iOS 版本: $LATEST_IOS"
 
-          # 获取最新的 iPhone 设备
-          LATEST_IPHONE=$(xcrun simctl list devices | grep "iPhone" | grep -v "SE" | grep -v "mini" | grep "available" | tail -1 | sed 's/.*\(iPhone [0-9]*[a-zA-Z ]*\) (.*/\1/' | xargs)
-          echo "🎯 检测到最新 iPhone: $LATEST_IPHONE"
-
-          # 检查是否成功获取设备
+          # 获取最新的 iPhone 设备 - 使用多种方法
+          echo "🎯 尝试检测 iPhone 设备..."
+          
+          # 方法1: 检测可用的设备
+          LATEST_IPHONE=$(xcrun simctl list devices 2>/dev/null | grep "iPhone" | grep -v "SE" | grep -v "mini" | grep "available" | tail -1 | sed 's/.*\(iPhone [0-9]*[a-zA-Z ]*\) (.*/\1/' | xargs 2>/dev/null)
+          
+          # 方法2: 不过滤状态
           if [ -z "$LATEST_IPHONE" ]; then
-            echo "❌ 无法检测到 iPhone 设备，尝试不过滤 available:"
-            LATEST_IPHONE=$(xcrun simctl list devices | grep "iPhone" | grep -v "SE" | grep -v "mini" | tail -1 | sed 's/.*\(iPhone [0-9]*[a-zA-Z ]*\) (.*/\1/' | xargs)
-            echo "不过滤检测到: $LATEST_IPHONE"
-            
-            if [ -z "$LATEST_IPHONE" ]; then
-              echo "❌ 仍然无法检测，使用默认值"
-              LATEST_IPHONE="iPhone 15"
-            fi
+            echo "方法1失败，尝试方法2..."
+            LATEST_IPHONE=$(xcrun simctl list devices 2>/dev/null | grep "iPhone" | grep -v "SE" | grep -v "mini" | tail -1 | sed 's/.*\(iPhone [0-9]*[a-zA-Z ]*\) (.*/\1/' | xargs 2>/dev/null)
           fi
+          
+          # 方法3: 从设备类型检测
+          if [ -z "$LATEST_IPHONE" ]; then
+            echo "方法2失败，尝试从设备类型检测..."
+            LATEST_IPHONE=$(xcrun simctl list devicetypes 2>/dev/null | grep "iPhone" | grep -v "SE" | grep -v "mini" | tail -1 | awk -F'[()]' '{print $1}' | xargs 2>/dev/null)
+          fi
+          
+          # 方法4: 使用已知的设备
+          if [ -z "$LATEST_IPHONE" ]; then
+            echo "所有自动检测方法失败，使用默认设备..."
+            LATEST_IPHONE="iPhone 15"
+          fi
+          
+          echo "🎯 最终确定的 iPhone 设备: $LATEST_IPHONE"
 
           # 构建 SDK 名称
           IOS_MAJOR=$(echo $LATEST_IOS | cut -d. -f1)
@@ -118,15 +201,24 @@ jobs:
           echo "🛠️  构建 SDK 名称: $SDK_NAME"
 
           # 验证 SDK 是否存在
-          echo "📋 6. 验证 SDK 是否存在:"
+          echo "📋 7. 验证 SDK 是否存在:"
           if xcrun --sdk "$SDK_NAME" --show-sdk-path 2>/dev/null; then
             echo "✅ SDK $SDK_NAME 存在"
+            echo "SDK 路径: $(xcrun --sdk "$SDK_NAME" --show-sdk-path)"
           else
-            echo "❌ SDK $SDK_NAME 不存在，显示所有可用 SDK:"
+            echo "❌ SDK $SDK_NAME 不存在"
+            echo "📋 所有可用的 iOS SDK:"
             xcodebuild -showsdks | grep "iphoneos\|iphonesimulator"
-            # 使用默认 SDK
-            SDK_NAME="iphonesimulator"
-            echo "🔄 使用默认 SDK: $SDK_NAME"
+            
+            # 尝试使用最新的可用 SDK
+            AVAILABLE_SDK=$(xcodebuild -showsdks 2>/dev/null | grep "iphonesimulator" | tail -1 | awk '{print $NF}' 2>/dev/null)
+            if [ -n "$AVAILABLE_SDK" ]; then
+              SDK_NAME="$AVAILABLE_SDK"
+              echo "🔄 使用可用的 SDK: $SDK_NAME"
+            else
+              SDK_NAME="iphonesimulator"
+              echo "🔄 使用默认 SDK: $SDK_NAME"
+            fi
           fi
 
           # 验证模拟器是否存在
