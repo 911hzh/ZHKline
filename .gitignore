@@ -2,3 +2,9 @@
 /fastlane/test_output/report.html
 /fastlane/report.xml
 /ZHKLine.xcodeproj/project.xcworkspace/xcuserdata/huang.xcuserdatad/UserInterfaceState.xcuserstate
+
+# Ruby gems
+gems/
+specifications/
+.bundle/
+vendor/bundle/

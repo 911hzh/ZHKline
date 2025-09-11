@@ -55,6 +55,10 @@ jobs:
           ruby-version: "3.4.4"
           bundler-cache: true
 
+      - name: Configure Bundler
+        run: |
+          bundle config set --local path 'vendor/bundle'
+
       - name: Show available simulators
         run: |
           xcrun simctl list devicetypes
