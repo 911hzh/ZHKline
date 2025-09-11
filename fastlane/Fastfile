@@ -2,12 +2,14 @@
 # You can find the documentation at https://docs.fastlane.tools
 #
 # 环境变量配置:
-# IOS_VERSION - 指定iOS模拟器版本 (默认: 18.6)
+# IOS_VERSION - 指定iOS模拟器版本 (默认: 自动检测最新可用版本)
 # DEVICE_NAME - 指定设备名称 (默认: iPhone 16)
 #
 # 使用示例:
 # IOS_VERSION=17.5 DEVICE_NAME="iPhone 15" fastlane build
-# IOS_VERSION=18.2 fastlane test
+# IOS_VERSION=18.1 fastlane test
+#
+# 注意: 在 CI 环境中会自动检测并使用最新可用的 iOS 版本
 
 default_platform(:ios)
 
@@ -15,21 +17,38 @@ platform :ios do
   # 共享的配置方法
   def get_build_configuration
     # 动态获取iOS版本，支持环境变量配置
-    ios_version = ENV["IOS_VERSION"] || "18.3.1"
+    # 使用更保守的默认版本，避免依赖最新版本
+    ios_version = ENV["IOS_VERSION"] || "18.1"
     device_name = ENV["DEVICE_NAME"] || "iPhone 16"
     
     # 获取可用的iOS SDK版本
     available_sdks = `xcodebuild -showsdks | grep iphoneos | tail -1`.strip
     latest_sdk = available_sdks.match(/iphoneos(\d+\.\d+)/)&.captures&.first || "18.6"
     
-    # 检查模拟器可用性
+    # 检查指定的iOS版本是否可用
+    available_runtimes = `xcrun simctl list runtimes available | grep iOS`.strip
+    UI.message("🔍 可用的 iOS 运行时:")
+    UI.message(available_runtimes)
+    
+    # 如果指定版本不可用，查找最接近的可用版本
+    unless available_runtimes.include?("iOS #{ios_version}")
+      # 提取所有可用的iOS版本
+      ios_versions = available_runtimes.scan(/iOS (\d+\.\d+)/).flatten.sort_by { |v| Gem::Version.new(v) }
+      if ios_versions.any?
+        fallback_version = ios_versions.last # 使用最新的可用版本
+        UI.important("⚠️  iOS #{ios_version} 不可用，使用 iOS #{fallback_version}")
+        ios_version = fallback_version
+      end
+    end
+    
+    # 检查模拟器设备可用性
     available_simulators = `xcrun simctl list devices available | grep "#{device_name}"`.strip
     if available_simulators.empty?
       UI.important("⚠️  指定的设备 '#{device_name}' 不可用，使用默认设备")
       device_name = "iPhone 16"
     end
     
-    UI.message("📱 使用 iOS 版本: #{ios_version}")
+    UI.message("📱 最终使用 iOS 版本: #{ios_version}")
     UI.message("🔧 最新可用 SDK: #{latest_sdk}")  
     UI.message("📲 目标设备: #{device_name}")
     
