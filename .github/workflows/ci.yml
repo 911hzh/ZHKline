@@ -331,6 +331,12 @@ jobs:
           echo "📋 最终验证模拟器配置:"
           xcrun simctl list devices | grep "$DEVICE_NAME" | head -1
 
+          echo "📋 设置构建超时配置:"
+          export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=60
+          export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=2
+          echo "超时时间: $FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT 秒"
+          echo "重试次数: $FASTLANE_XCODEBUILD_SETTINGS_RETRIES 次"
+
           echo "📋 开始 Fastlane 构建..."
           fastlane build
 

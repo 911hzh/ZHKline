@@ -66,6 +66,21 @@ platform :ios do
     UI.message("  SDK: #{config[:sdk_name]}")
     UI.message("  配置: Debug")
     
+    # 预构建检查
+    UI.message("=== 🔍 预构建检查 ===")
+    begin
+      UI.message("检查项目 scheme...")
+      schemes = sh("xcodebuild -project ZHKLine.xcodeproj -list", log: false)
+      UI.message("可用 schemes: #{schemes.split("\n").grep(/ZHKLine/).first&.strip}")
+      
+      UI.message("快速语法检查...")
+      sh("xcodebuild -project ZHKLine.xcodeproj -scheme ZHKLine -destination '#{destination}' -sdk #{config[:sdk_name]} -configuration Debug -dry-run", log: false)
+      UI.success("✅ 预构建检查通过")
+    rescue => e
+      UI.error("❌ 预构建检查失败: #{e.message}")
+      UI.message("继续尝试构建...")
+    end
+    
     begin
       build_ios_app(
         project: "ZHKLine.xcodeproj",
@@ -76,18 +91,54 @@ platform :ios do
         skip_package_ipa: true,
         skip_archive: true,
         codesigning_identity: "",
-        xcargs: "CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' PROVISIONING_PROFILE=''",
-        # 增加详细日志
-        verbose: true,
+        xcargs: "CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' PROVISIONING_PROFILE='' -allowProvisioningUpdates",
+        # 减少详细日志以加快速度
+        verbose: false,
+        # 禁用自动签名检查
+        skip_profile_detection: true,
         # 构建超时设置
-        buildlog_path: "./fastlane/build_logs"
+        buildlog_path: "./fastlane/build_logs",
+        # 添加超时设置
+        build_settings: {
+          "DEVELOPMENT_TEAM" => "",
+          "CODE_SIGN_IDENTITY" => "",
+          "CODE_SIGNING_REQUIRED" => "NO",
+          "CODE_SIGNING_ALLOWED" => "NO"
+        }
       )
       UI.success("🎉 构建成功完成!")
     rescue => e
-      UI.error("❌ 构建失败: #{e.message}")
+      UI.error("❌ Fastlane 构建失败: #{e.message}")
       UI.message("📋 错误详细信息:")
       UI.message("  错误类型: #{e.class}")
       UI.message("  错误消息: #{e.message}")
+      
+      # 如果是超时错误，尝试直接使用 xcodebuild
+      if e.message.include?("timed out") || e.message.include?("timeout")
+        UI.message("🔄 检测到超时错误，尝试直接使用 xcodebuild...")
+        begin
+          direct_build_command = [
+            "xcodebuild",
+            "-project ZHKLine.xcodeproj",
+            "-scheme ZHKLine",
+            "-destination '#{destination}'",
+            "-sdk #{config[:sdk_name]}",
+            "-configuration Debug",
+            "CODE_SIGNING_REQUIRED=NO",
+            "CODE_SIGN_IDENTITY=''",
+            "PROVISIONING_PROFILE=''",
+            "-allowProvisioningUpdates",
+            "build"
+          ].join(" ")
+          
+          UI.message("执行命令: #{direct_build_command}")
+          sh(direct_build_command, log: true)
+          UI.success("🎉 直接构建成功完成!")
+          return
+        rescue => direct_e
+          UI.error("❌ 直接构建也失败: #{direct_e.message}")
+        end
+      end
       
       # 尝试显示构建日志的最后几行
       begin
