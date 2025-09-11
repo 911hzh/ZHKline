@@ -10,11 +10,12 @@ platform :ios do
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: "platform=iOS Simulator,name=iPhone 16,OS=18.6",
+      sdk: "iphonesimulator",
       configuration: "Debug",
       skip_package_ipa: true,
       skip_archive: true,
       codesigning_identity: "",
-      xcargs: "CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' PROVISIONING_PROFILE=''"
+      xcargs: "CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' PROVISIONING_PROFILE='' -sdk iphonesimulator"
     )
   end
 
@@ -24,6 +25,7 @@ platform :ios do
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: "platform=iOS Simulator,name=iPhone 16,OS=18.6",
+      sdk: "iphonesimulator",
       code_coverage: true,
       skip_build: false,
       only_testing: ["ZHKLineTests"]
@@ -36,6 +38,7 @@ platform :ios do
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: "platform=iOS Simulator,name=iPhone 16,OS=18.6",
+      sdk: "iphonesimulator",
       code_coverage: true,
       skip_build: false,
       only_testing: ["ZHKLineUITests"]
