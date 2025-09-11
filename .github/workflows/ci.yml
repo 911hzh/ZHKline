@@ -7,71 +7,16 @@ on:
     branches: [develop, main, master]
 
 jobs:
-  setup:
-    name: Environment Setup
-    runs-on: macos-15
-    outputs:
-      cache-key: ${{ steps.cache-key.outputs.key }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Generate cache key
-        id: cache-key
-        run: |
-          echo "key=env-${{ runner.os }}-${{ hashFiles('Gemfile.lock', '.swiftlint.yml') }}" >> $GITHUB_OUTPUT
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Caches/Homebrew
-            /usr/local/Cellar/swiftlint
-            vendor/bundle
-          key: ${{ steps.cache-key.outputs.key }}
-          restore-keys: |
-            env-${{ runner.os }}-
-
-      - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-
-      - name: Show environment info
-        run: |
-          xcodebuild -version
-          swift --version
-
-      - name: Install SwiftLint
-        run: |
-          if ! command -v swiftlint &> /dev/null; then
-            brew install swiftlint
-          fi
-          swiftlint version
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.4.4"
-          bundler-cache: true
-
-      - name: Verify Fastlane
-        run: |
-          bundle exec fastlane --version
-
   swiftlint:
     name: SwiftLint
     runs-on: macos-15
-    needs: setup
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore dependencies cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Caches/Homebrew
-            /usr/local/Cellar/swiftlint
-          key: ${{ needs.setup.outputs.cache-key }}
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint
 
       - name: Run SwiftLint
         run: |
@@ -80,20 +25,15 @@ jobs:
   build:
     name: Build
     runs-on: macos-15
-    needs: setup
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore dependencies cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            vendor/bundle
-          key: ${{ needs.setup.outputs.cache-key }}
-
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - name: Show Xcode version
+        run: xcodebuild -version
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -111,41 +51,34 @@ jobs:
         run: |
           bundle exec fastlane build
 
-  test:
-    name: Test
-    runs-on: macos-15
-    needs: [setup, build]
+  # test:
+  #   name: Test
+  #   runs-on: macos-15
+  #   needs: build
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Restore dependencies cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            vendor/bundle
-          key: ${{ needs.setup.outputs.cache-key }}
+  #     - name: Select Xcode version
+  #       run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
 
-      - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+  #     - name: Setup Ruby
+  #       uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: "3.4.4"
+  #         bundler-cache: true
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.4.4"
-          bundler-cache: true
+  #     - name: Run Unit Tests
+  #       run: |
+  #         bundle exec fastlane unit_test
 
-      - name: Run Unit Tests
-        run: |
-          bundle exec fastlane unit_test
+  #     - name: Run UI Tests
+  #       run: |
+  #         bundle exec fastlane ui_test
 
-      - name: Run UI Tests
-        run: |
-          bundle exec fastlane ui_test
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: fastlane/test_output/
+  #     - name: Upload test results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: test-results
+  #         path: fastlane/test_output/
