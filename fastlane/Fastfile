@@ -1,0 +1,50 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build the project"
+  lane :build do
+    gym(
+      project: "ZHKLine.xcodeproj",
+      scheme: "ZHKLine",
+      destination: "platform=iOS Simulator,name=iPhone 16,OS=latest",
+      configuration: "Debug",
+      skip_package_ipa: true,
+      skip_archive: true,
+      codesigning_identity: "",
+      xcargs: "CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' PROVISIONING_PROFILE=''"
+    )
+  end
+
+  desc "Run unit tests only"
+  lane :unit_test do
+    scan(
+      project: "ZHKLine.xcodeproj",
+      scheme: "ZHKLine",
+      destination: "platform=iOS Simulator,name=iPhone 16,OS=latest",
+      code_coverage: true,
+      skip_build: false,
+      only_testing: ["ZHKLineTests"]
+    )
+  end
+
+  desc "Run UI tests only"
+  lane :ui_test do
+    scan(
+      project: "ZHKLine.xcodeproj",
+      scheme: "ZHKLine",
+      destination: "platform=iOS Simulator,name=iPhone 16,OS=latest",
+      code_coverage: true,
+      skip_build: false,
+      only_testing: ["ZHKLineUITests"]
+    )
+  end
+
+  desc "Run all tests (unit + UI)"
+  lane :test do
+    unit_test
+    ui_test
+  end
+end

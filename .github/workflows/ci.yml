@@ -7,31 +7,99 @@ on:
     branches: [develop, main, master]
 
 jobs:
-  swiftlint:
+  setup:
+    name: Environment Setup
     runs-on: macos-15
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SwiftLint
+      - name: Generate cache key
+        id: cache-key
         run: |
-          brew install swiftlint
+          echo "key=env-${{ runner.os }}-${{ hashFiles('Gemfile.lock', '.swiftlint.yml') }}" >> $GITHUB_OUTPUT
 
-      - name: SwiftLint
-        run: |
-          swiftlint --reporter github-actions-logging --strict
-  # 编译
-  build:
-    runs-on: macos-15
-
-    steps:
-      - uses: actions/checkout@v4
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /usr/local/Cellar/swiftlint
+            vendor/bundle
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            env-${{ runner.os }}-
 
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: Show environment info
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install SwiftLint
+        run: |
+          if ! command -v swiftlint &> /dev/null; then
+            brew install swiftlint
+          fi
+          swiftlint version
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.4"
+          bundler-cache: true
+
+      - name: Verify Fastlane
+        run: |
+          bundle exec fastlane --version
+
+  swiftlint:
+    name: SwiftLint
+    runs-on: macos-15
+    needs: setup
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /usr/local/Cellar/swiftlint
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Run SwiftLint
+        run: |
+          swiftlint --reporter github-actions-logging --strict
+
+  build:
+    name: Build
+    runs-on: macos-15
+    needs: setup
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            vendor/bundle
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.4"
+          bundler-cache: true
 
       - name: Show available simulators
         run: |
@@ -39,18 +107,45 @@ jobs:
           xcrun simctl list runtimes
           xcrun simctl list devices available
 
-      - name: Check available destinations
+      - name: Build with Fastlane
         run: |
-          xcodebuild -project ZHKLine.xcodeproj -scheme ZHKLine -showdestinations
+          bundle exec fastlane build
 
-      - name: Build
+  test:
+    name: Test
+    runs-on: macos-15
+    needs: [setup, build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            vendor/bundle
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.4"
+          bundler-cache: true
+
+      - name: Run Unit Tests
         run: |
-          set -o pipefail
-          xcodebuild clean build \
-            -project ZHKLine.xcodeproj \
-            -scheme ZHKLine \
-            -destination 'platform=macOS,arch=arm64,variant=Designed for [iPad,iPhone]' \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE="" \
-            -verbose
+          bundle exec fastlane unit_test
+
+      - name: Run UI Tests
+        run: |
+          bundle exec fastlane ui_test
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: fastlane/test_output/
