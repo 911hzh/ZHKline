@@ -166,6 +166,16 @@ jobs:
             LATEST_IOS="18.2"
           fi
 
+          # 验证和修正 iOS 版本
+          echo "🔍 验证检测到的 iOS 版本: $LATEST_IOS"
+          if [[ "$LATEST_IOS" == "18.6" ]]; then
+            echo "❌ iOS 18.6 不存在，修正为 18.2"
+            LATEST_IOS="18.2"
+          elif [[ "$LATEST_IOS" =~ ^18\.[7-9]$ ]] || [[ "$LATEST_IOS" =~ ^18\.[1-9][0-9]$ ]]; then
+            echo "❌ iOS $LATEST_IOS 版本异常，修正为 18.2"
+            LATEST_IOS="18.2"
+          fi
+
           echo "🎯 最终确定的 iOS 版本: $LATEST_IOS"
 
           # 获取最新的 iPhone 设备 - 使用多种方法
@@ -194,11 +204,11 @@ jobs:
 
           echo "🎯 最终确定的 iPhone 设备: $LATEST_IPHONE"
 
-          # 构建 SDK 名称
+          # 构建 SDK 名称，确保与 iOS 版本一致
           IOS_MAJOR=$(echo $LATEST_IOS | cut -d. -f1)
           IOS_MINOR=$(echo $LATEST_IOS | cut -d. -f2)
           SDK_NAME="iphonesimulator${IOS_MAJOR}.${IOS_MINOR}"
-          echo "🛠️  构建 SDK 名称: $SDK_NAME"
+          echo "🛠️  构建 SDK 名称: $SDK_NAME (基于 iOS $LATEST_IOS)"
 
           # 验证 SDK 是否存在
           echo "📋 7. 验证 SDK 是否存在:"
@@ -211,13 +221,22 @@ jobs:
             xcodebuild -showsdks | grep "iphoneos\|iphonesimulator"
             
             # 尝试使用最新的可用 SDK
+            echo "📋 寻找替代 SDK..."
             AVAILABLE_SDK=$(xcodebuild -showsdks 2>/dev/null | grep "iphonesimulator" | tail -1 | awk '{print $NF}' 2>/dev/null)
             if [ -n "$AVAILABLE_SDK" ]; then
               SDK_NAME="$AVAILABLE_SDK"
               echo "🔄 使用可用的 SDK: $SDK_NAME"
+              
+              # 同时更新 iOS 版本以匹配 SDK
+              NEW_IOS_VERSION=$(echo "$SDK_NAME" | sed 's/iphonesimulator//')
+              if [ -n "$NEW_IOS_VERSION" ]; then
+                LATEST_IOS="$NEW_IOS_VERSION"
+                echo "🔄 同步更新 iOS 版本为: $LATEST_IOS"
+              fi
             else
               SDK_NAME="iphonesimulator"
-              echo "🔄 使用默认 SDK: $SDK_NAME"
+              LATEST_IOS="18.2"
+              echo "🔄 使用默认 SDK: $SDK_NAME 和 iOS 版本: $LATEST_IOS"
             fi
           fi
 
@@ -237,8 +256,21 @@ jobs:
             echo "ℹ️  将在后续步骤中尝试创建模拟器"
           fi
 
+          # 最终验证所有配置的一致性
+          echo "📋 9. 最终配置一致性检查:"
+          echo "  iOS 版本: $LATEST_IOS"
+          echo "  设备名称: $LATEST_IPHONE"  
+          echo "  SDK 名称: $SDK_NAME"
+
+          # 验证 iOS 版本和 SDK 是否匹配
+          SDK_VERSION=$(echo "$SDK_NAME" | sed 's/iphonesimulator//')
+          if [ -n "$SDK_VERSION" ] && [ "$SDK_VERSION" != "$LATEST_IOS" ]; then
+            echo "⚠️  版本不匹配，统一为 SDK 版本: $SDK_VERSION"
+            LATEST_IOS="$SDK_VERSION"
+          fi
+
           # 导出环境变量
-          echo "📋 9. 导出环境变量:"
+          echo "📋 10. 导出环境变量:"
           echo "IOS_VERSION=$LATEST_IOS" >> $GITHUB_ENV
           echo "DEVICE_NAME=$LATEST_IPHONE" >> $GITHUB_ENV  
           echo "SDK_NAME=$SDK_NAME" >> $GITHUB_ENV
@@ -267,7 +299,11 @@ jobs:
             
             if [ -n "$DEVICE_TYPE" ] && [ -n "$RUNTIME_ID" ]; then
               echo "创建模拟器: $DEVICE_NAME iOS $IOS_VERSION"
-              SIMULATOR_NAME="CI-$DEVICE_NAME-iOS$IOS_VERSION"
+              # 创建更简洁的设备名称，避免特殊字符
+              CLEAN_DEVICE_NAME=$(echo "$DEVICE_NAME" | sed 's/ //g')  # 移除空格
+              CLEAN_IOS_VERSION=$(echo "$IOS_VERSION" | sed 's/\./_/g')  # 替换点为下划线
+              SIMULATOR_NAME="CI_${CLEAN_DEVICE_NAME}_iOS${CLEAN_IOS_VERSION}"
+              
               xcrun simctl create "$SIMULATOR_NAME" "$DEVICE_TYPE" "$RUNTIME_ID"
               echo "✅ 模拟器创建成功: $SIMULATOR_NAME"
               

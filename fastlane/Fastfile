@@ -210,13 +210,20 @@ platform :ios do
       end
     end
     
+    # 验证配置一致性
+    sdk_version = sdk_name.gsub('iphonesimulator', '') rescue nil
+    if sdk_version && !sdk_version.empty? && sdk_version != ios_version
+      UI.message("⚠️  版本不匹配，统一为 SDK 版本: #{sdk_version}")
+      ios_version = sdk_version
+    end
+    
     config = {
       ios_version: ios_version,
       device_name: device_name,
       sdk_name: sdk_name
     }
     
-    UI.message("📋 最终配置:")
+    UI.message("📋 最终配置 (一致性验证后):")
     UI.message("  iOS 版本: #{config[:ios_version]}")
     UI.message("  设备名称: #{config[:device_name]}")
     UI.message("  SDK 名称: #{config[:sdk_name]}")
