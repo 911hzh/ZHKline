@@ -164,8 +164,8 @@ platform :ios do
       
       begin
         UI.message("检测可用的 iOS 版本...")
-        ios_output = sh("xcrun simctl list devices ios | grep -E '-- iOS [0-9]+\\.[0-9]+ --' | tail -1", log: true)
-        ios_version = ios_output.match(/iOS (\d+\.\d+)/)[1] rescue nil
+        ios_output = sh("xcrun simctl list devices ios | grep 'iOS' | grep -o 'iOS [0-9]*\\.[0-9]*' | tail -1", log: true)
+        ios_version = ios_output.strip.gsub('iOS ', '') rescue nil
         
         if ios_version.nil?
           UI.message("尝试备用方法检测 iOS 版本...")
