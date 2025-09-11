@@ -49,15 +49,9 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.4.4"
-          bundler-cache: true
-
-      - name: Configure Bundler
+      - name: Install Fastlane
         run: |
-          bundle config set --local path 'vendor/bundle'
+          brew install fastlane
 
       - name: Show available simulators
         run: |
@@ -67,33 +61,22 @@ jobs:
 
       - name: Build with Fastlane
         run: |
-          bundle exec fastlane build
+          fastlane build
 
   # test:
   #   name: Test
   #   runs-on: macos-15
   #   needs: build
-
   #   steps:
   #     - uses: actions/checkout@v4
-
   #     - name: Select Xcode version
   #       run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-
-  #     - name: Setup Ruby
-  #       uses: ruby/setup-ruby@v1
-  #       with:
-  #         ruby-version: "3.4.4"
-  #         bundler-cache: true
-
+  #     - name: Install Fastlane
+  #       run: brew install fastlane
   #     - name: Run Unit Tests
-  #       run: |
-  #         bundle exec fastlane unit_test
-
+  #       run: fastlane unit_test
   #     - name: Run UI Tests
-  #       run: |
-  #         bundle exec fastlane ui_test
-
+  #       run: fastlane ui_test
   #     - name: Upload test results
   #       uses: actions/upload-artifact@v4
   #       if: always()
