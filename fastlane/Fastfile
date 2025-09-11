@@ -6,14 +6,20 @@ default_platform(:ios)
 platform :ios do
   desc "Build the project"
   lane :build do
-    # 动态获取iOS版本，支持环境变量配置
-    ios_version = ENV["IOS_VERSION"] || "18.6"
-    device_name = ENV["DEVICE_NAME"] || "iPhone 16"
-    destination = "platform=iOS Simulator,OS=#{ios_version},name=#{device_name}"
-    
-    UI.message("📱 使用 iOS 版本: #{ios_version}")
-    UI.message("📲 目标设备: #{device_name}")
-    UI.message("🎯 构建目标: #{destination}")
+    # 检查是否使用通用destination
+    if ENV["USE_GENERIC_DESTINATION"] == "true"
+      destination = "generic/platform=iOS Simulator"
+      UI.message("🎯 使用通用模拟器destination: #{destination}")
+    else
+      # 动态获取iOS版本，支持环境变量配置
+      ios_version = ENV["IOS_VERSION"] || "18.6"
+      device_name = ENV["DEVICE_NAME"] || "iPhone 16"
+      destination = "platform=iOS Simulator,OS=#{ios_version},name=#{device_name}"
+      
+      UI.message("📱 使用 iOS 版本: #{ios_version}")
+      UI.message("📲 目标设备: #{device_name}")
+      UI.message("🎯 构建目标: #{destination}")
+    end
     
     build_ios_app(
       project: "ZHKLine.xcodeproj",

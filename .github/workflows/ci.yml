@@ -75,8 +75,17 @@ jobs:
       - name: Build with Fastlane
         run: |
           echo "Building with available iOS SDK + iPhone 16..."
-          echo "使用Xcode 16.2默认的iOS SDK版本"
-          # 不设置IOS_VERSION，让Fastfile使用默认值或自动检测
+          echo "动态检测并使用可用的iOS版本"
+          # 动态获取第一个可用的iOS 18.x版本
+          AVAILABLE_IOS=$(xcrun simctl list devices | grep "iOS 18" | head -1 | sed 's/.*iOS \([0-9\.]*\).*/\1/')
+          if [ -z "$AVAILABLE_IOS" ]; then
+            # 如果没有iOS 18.x，使用通用destination
+            echo "未找到iOS 18.x版本，使用通用destination"
+            export USE_GENERIC_DESTINATION="true"
+          else
+            echo "找到可用的iOS版本: $AVAILABLE_IOS"
+            export IOS_VERSION="$AVAILABLE_IOS"
+          fi
           fastlane build
 
   # test:
