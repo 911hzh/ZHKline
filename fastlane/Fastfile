@@ -19,7 +19,6 @@ platform :ios do
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: destination,
-      sdk: "iOS #{ios_version}",
       configuration: "Debug",
       skip_package_ipa: true,
       skip_archive: true,
@@ -41,7 +40,6 @@ platform :ios do
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: destination,
-      sdk: "iOS #{ios_version}",
       code_coverage: true,
       skip_build: false,
       only_testing: ["ZHKLineTests"]
@@ -61,7 +59,6 @@ platform :ios do
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: destination,
-      sdk: "iOS #{ios_version}",
       code_coverage: true,
       skip_build: false,
       only_testing: ["ZHKLineUITests"]

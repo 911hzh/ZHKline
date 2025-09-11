@@ -63,15 +63,20 @@ jobs:
 
       - name: Verify CI simulator availability
         run: |
-          echo "=== Checking iOS 18.6 and iPhone 16 availability ==="
-          xcrun simctl list devices | grep "iPhone 16" | head -3
-          echo "Using: iPhone 16, iOS 18.6 (confirmed available in CI)"
+          echo "=== 检查可用的iOS SDK版本 ==="
+          xcodebuild -showsdks | grep iOS
+          echo ""
+          echo "=== 检查可用的模拟器设备 ==="
+          xcrun simctl list devices | grep "iPhone 16" | head -5
+          echo ""
+          echo "=== 检查完整的iOS 18.x模拟器 ==="
+          xcrun simctl list devices | grep "iOS 18"
 
       - name: Build with Fastlane
         run: |
-          echo "Building with iOS 18.6 + iPhone 16..."
-          echo "设置环境变量 IOS_VERSION=18.6"
-          export IOS_VERSION="18.6"
+          echo "Building with available iOS SDK + iPhone 16..."
+          echo "使用Xcode 16.2默认的iOS SDK版本"
+          # 不设置IOS_VERSION，让Fastfile使用默认值或自动检测
           fastlane build
 
   # test:
