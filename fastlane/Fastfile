@@ -22,18 +22,24 @@ platform :ios do
 
   desc "Run unit tests only"
   lane :unit_test do
+    ios_version = "18.6"
+    destination = "platform=iOS Simulator,name=iPhone 16,OS=#{ios_version}"
+    
     scan(
       scheme: "ZHKLine",
-      destination = "platform=iOS Simulator,name=iPhone 16,OS=#{ios_version}"
+      destination: destination,
       only_testing: ["ZHKLineTests"]
     )
   end
 
   desc "Run UI tests only"
   lane :ui_test do
+    ios_version = "18.6"
+    destination = "platform=iOS Simulator,name=iPhone 16,OS=#{ios_version}"
+    
     scan(
       scheme: "ZHKLine",
-      destination = "platform=iOS Simulator,name=iPhone 16,OS=#{ios_version}"
+      destination: destination,
       only_testing: ["ZHKLineUITests"]
     )
   end
