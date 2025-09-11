@@ -72,6 +72,7 @@ jobs:
           echo "Building with iOS 18.6 + iPhone 16..."
           echo "设置环境变量 IOS_VERSION=18."
           export IOS_VERSION="18.6"
+          export SDK_NAME="iphonesimulator18.6"
           fastlane build
 
   # test:
