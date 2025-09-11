@@ -63,34 +63,16 @@ jobs:
 
       - name: Verify CI simulator availability
         run: |
-          echo "=== 检查可用的iOS SDK版本 ==="
-          xcodebuild -showsdks | grep iOS
-          echo ""
-          echo "=== 检查可用的模拟器设备 ==="
-          xcrun simctl list devices | grep "iPhone 16" | head -5
-          echo ""
-          echo "=== 检查完整的iOS 18.x模拟器 ==="
-          xcrun simctl list devices | grep "iOS 18"
+          echo "=== Checking iOS 18.6 and iPhone 16 availability ==="
+          xcrun simctl list devices | grep "iPhone 16" | head -3
+          echo "Using: iPhone 16, iOS 18.6 (confirmed available in CI)"
 
       - name: Build with Fastlane
         run: |
-          echo "Building with generic iOS Simulator destination..."
-          echo "使用通用destination避免版本匹配问题"
-
-          # CI环境自动使用通用destination
-          export CI=true
-
-          # 增加详细日志输出
-          fastlane build --verbose
-
-          # 如果失败，显示详细错误日志
-          if [ $? -ne 0 ]; then
-            echo "=== 构建失败，显示详细日志 ==="
-            if [ -f "/Users/runner/Library/Logs/gym/App-ZHKLine.log" ]; then
-              echo "=== 完整构建日志 ==="
-              cat "/Users/runner/Library/Logs/gym/App-ZHKLine.log"
-            fi
-          fi
+          echo "Building with iOS 18.6 + iPhone 16..."
+          echo "设置环境变量 IOS_VERSION=18."
+          export IOS_VERSION="18.6"
+          fastlane build
 
   # test:
   #   name: Test

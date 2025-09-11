@@ -6,27 +6,24 @@ default_platform(:ios)
 platform :ios do
   desc "Build the project"
   lane :build do
-    # 优先使用通用destination，更稳定
-    use_generic = ENV["USE_GENERIC_DESTINATION"] == "true" || ENV["CI"] == "true"
+    # 动态获取iOS版本，支持环境变量配置
+    ios_version = ENV["IOS_VERSION"] || "18.6"
+    device_name = ENV["DEVICE_NAME"] || "iPhone 16"
+    destination = "platform=iOS Simulator,OS=#{ios_version},name=#{device_name}"
     
-    if use_generic
-      destination = "generic/platform=iOS Simulator"
-      UI.message("🎯 使用通用模拟器destination: #{destination}")
-    else
-      # 本地开发环境使用具体版本
-      ios_version = ENV["IOS_VERSION"] || "18.6"
-      device_name = ENV["DEVICE_NAME"] || "iPhone 16"
-      destination = "platform=iOS Simulator,OS=#{ios_version},name=#{device_name}"
-      
-      UI.message("📱 使用 iOS 版本: #{ios_version}")
-      UI.message("📲 目标设备: #{device_name}")
-      UI.message("🎯 构建目标: #{destination}")
-    end
+    # 自动检测可用的模拟器SDK
+    sdk_name = ENV["SDK_NAME"] || "iphonesimulator18.2"
+    
+    UI.message("📱 使用 iOS 版本: #{ios_version}")
+    UI.message("📲 目标设备: #{device_name}")
+    UI.message("🛠️  使用 SDK: #{sdk_name}")
+    UI.message("🎯 构建目标: #{destination}")
     
     build_ios_app(
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: destination,
+      sdk: sdk_name,
       configuration: "Debug",
       skip_package_ipa: true,
       skip_archive: true,
@@ -41,13 +38,15 @@ platform :ios do
     ios_version = ENV["IOS_VERSION"] || "18.6"
     device_name = ENV["DEVICE_NAME"] || "iPhone 16"
     destination = "platform=iOS Simulator,OS=#{ios_version},name=#{device_name}"
+    sdk_name = ENV["SDK_NAME"] || "iphonesimulator18.2"
     
-    UI.message("🧪 运行单元测试 - iOS: #{ios_version}, 设备: #{device_name}")
+    UI.message("🧪 运行单元测试 - iOS: #{ios_version}, 设备: #{device_name}, SDK: #{sdk_name}")
     
     run_tests(
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: destination,
+      sdk: sdk_name,
       code_coverage: true,
       skip_build: false,
       only_testing: ["ZHKLineTests"]
@@ -60,13 +59,15 @@ platform :ios do
     ios_version = ENV["IOS_VERSION"] || "18.6"
     device_name = ENV["DEVICE_NAME"] || "iPhone 16"
     destination = "platform=iOS Simulator,OS=#{ios_version},name=#{device_name}"
+    sdk_name = ENV["SDK_NAME"] || "iphonesimulator18.2"
     
-    UI.message("🎯 运行UI测试 - iOS: #{ios_version}, 设备: #{device_name}")
+    UI.message("🎯 运行UI测试 - iOS: #{ios_version}, 设备: #{device_name}, SDK: #{sdk_name}")
     
     run_tests(
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: destination,
+      sdk: sdk_name,
       code_coverage: true,
       skip_build: false,
       only_testing: ["ZHKLineUITests"]
