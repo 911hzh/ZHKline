@@ -222,23 +222,30 @@ jobs:
           fi
 
           # 验证模拟器是否存在
-          echo "📋 7. 验证模拟器配置:"
+          echo "📋 8. 验证模拟器配置:"
           echo "目标配置: $LATEST_IPHONE, iOS $LATEST_IOS"
-          SIMULATOR_CHECK=$(xcrun simctl list devices | grep "$LATEST_IPHONE" | head -3)
-          if [ -n "$SIMULATOR_CHECK" ]; then
+          
+          # 更安全的模拟器检查
+          if xcrun simctl list devices 2>/dev/null | grep -q "$LATEST_IPHONE"; then
+            SIMULATOR_CHECK=$(xcrun simctl list devices 2>/dev/null | grep "$LATEST_IPHONE" | head -3)
             echo "✅ 找到匹配的模拟器:"
             echo "$SIMULATOR_CHECK"
           else
-            echo "❌ 未找到匹配的模拟器，显示所有可用 iPhone:"
-            xcrun simctl list devices | grep "iPhone"
+            echo "❌ 未找到匹配的模拟器 '$LATEST_IPHONE'"
+            echo "📋 所有可用的 iPhone 设备:"
+            xcrun simctl list devices 2>/dev/null | grep "iPhone" || echo "无法获取设备列表"
+            echo "ℹ️  将在后续步骤中尝试创建模拟器"
           fi
-
+          
           # 导出环境变量
-          echo "📋 8. 导出环境变量:"
+          echo "📋 9. 导出环境变量:"
           echo "IOS_VERSION=$LATEST_IOS" >> $GITHUB_ENV
           echo "DEVICE_NAME=$LATEST_IPHONE" >> $GITHUB_ENV  
           echo "SDK_NAME=$SDK_NAME" >> $GITHUB_ENV
-          echo "✅ 环境变量已设置: iOS $LATEST_IOS, $LATEST_IPHONE, $SDK_NAME"
+          echo "✅ 环境变量已设置:"
+          echo "  iOS 版本: $LATEST_IOS"
+          echo "  设备名称: $LATEST_IPHONE"
+          echo "  SDK: $SDK_NAME"
 
       - name: Ensure simulator is available
         run: |
