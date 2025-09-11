@@ -45,23 +45,22 @@ graph TB
   - 潜在问题发现
 - **自定义规则**: 已针对项目优化
 
-### 3. Git Hooks
+### 3. 代码质量控制
 
-- **预提交钩子**: `scripts/pre-commit`
-  - SwiftLint 检查
-  - TODO/FIXME 检测
-  - 大文件检测
-  - Debug 语句检查
-- **提交消息钩子**: 强制规范的提交消息格式
-- **预推送钩子**: 防止直接推送到 protected 分支
+- **SwiftLint**: 自动化代码质量检查
+- **GitHub Actions**: CI/CD 流水线中集成质量检查
+- **分支保护**: 通过 GitHub 设置防止直接推送到保护分支
 
 ## 🚀 快速开始
 
-### 1. 安装 Git Hooks
+### 1. 配置开发环境
 
 ```bash
-# 在项目根目录执行
-./scripts/install-hooks.sh
+# 安装SwiftLint
+brew install swiftlint
+
+# 验证SwiftLint安装
+swiftlint version
 ```
 
 ### 2. 配置 GitHub 仓库

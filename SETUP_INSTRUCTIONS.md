@@ -77,8 +77,8 @@
 ### 1. 安装开发工具
 
 ```bash
-# 安装 Git hooks
-./scripts/install-hooks.sh
+# 安装 SwiftLint
+brew install swiftlint
 
 # 验证 SwiftLint
 swiftlint version
@@ -101,15 +101,7 @@ git push origin test/ci-setup
 
 ### 3. 验证分支保护
 
-尝试直接推送到 develop 分支应该被阻止：
-
-```bash
-git checkout develop
-echo "# Direct push test" >> test2.md
-git add test2.md
-git commit -m "test: 直接推送测试"
-git push origin develop  # 这应该被 pre-push hook 阻止
-```
+分支保护通过 GitHub 设置实现，防止直接推送到保护分支。
 
 ## 📝 工作流程
 
@@ -124,7 +116,7 @@ git checkout -b feature/新功能名称
 # 2. 开发代码
 # 编辑文件...
 
-# 3. 提交（会自动进行代码质量检查）
+# 3. 提交代码
 git add .
 git commit -m "feat(组件): 添加新功能描述"
 
@@ -167,14 +159,14 @@ swiftlint lint --reporter json
 swiftlint --fix
 ```
 
-### Git Hooks 问题
+### 代码质量检查
 
 ```bash
-# 重新安装 hooks
-./scripts/install-hooks.sh
+# 手动运行SwiftLint检查
+swiftlint lint
 
-# 跳过 hooks（紧急情况）
-git commit --no-verify
+# 自动修复部分问题
+swiftlint --fix
 ```
 
 ### CI 失败

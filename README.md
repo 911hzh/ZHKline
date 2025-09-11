@@ -241,8 +241,8 @@ ZHKLine 采用先进的架构设计，确保高性能和可维护性：
 git clone https://github.com/your-username/ZHKline.git
 cd ZHKline
 
-# 安装Git hooks和开发工具
-./scripts/install-hooks.sh
+# 安装开发工具
+brew install swiftlint
 
 # 验证SwiftLint安装
 swiftlint version

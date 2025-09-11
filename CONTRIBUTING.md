@@ -44,8 +44,8 @@
 git clone https://github.com/your-username/ZHKline.git
 cd ZHKline
 
-# 安装Git hooks
-./scripts/install-hooks.sh
+# 安装SwiftLint
+brew install swiftlint
 
 # 打开项目
 open ZHKLine.xcodeproj
