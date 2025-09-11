@@ -19,7 +19,7 @@ jobs:
   #         echo "请使用Pull Request进行代码合并"
   #         echo "推送的分支: ${{ github.ref }}"
   #         echo "触发事件: ${{ github.event_name }}"
-          exit 1
+  # exit 1
 
   swiftlint:
     name: SwiftLint
