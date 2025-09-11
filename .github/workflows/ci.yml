@@ -37,14 +37,18 @@ jobs:
         run: |
           xcrun simctl list devicetypes
           xcrun simctl list runtimes
+          xcrun simctl list devices available
+
+      - name: Check available destinations
+        run: |
+          xcodebuild -project ZHKLine.xcodeproj -scheme ZHKLine -showdestinations
 
       - name: Build
         run: |
           xcodebuild clean build \
             -project ZHKLine.xcodeproj \
             -scheme ZHKLine \
-            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
+            -destination 'platform=iOS Simulator' \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE="" \
-            | xcpretty && exit ${PIPESTATUS[0]}
+            PROVISIONING_PROFILE=""
