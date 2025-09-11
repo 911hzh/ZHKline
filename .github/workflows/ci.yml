@@ -28,8 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SwiftLint
+      - name: Verify Homebrew and Install SwiftLint
         run: |
+          echo "Checking Homebrew..."
+          brew --version
+          echo "Installing SwiftLint..."
           brew install swiftlint
 
       - name: Run SwiftLint
@@ -49,8 +52,11 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Install Fastlane
+      - name: Verify Homebrew and Install Fastlane
         run: |
+          echo "Checking Homebrew..."
+          brew --version
+          echo "Installing Fastlane..."
           brew install fastlane
           echo "Installed fastlane version:"
           fastlane --version
