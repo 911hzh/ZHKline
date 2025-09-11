@@ -7,9 +7,9 @@ platform :ios do
   desc "Build the project"
   lane :build do
     # 动态获取iOS版本，支持环境变量配置
-    ios_version = ENV["IOS_VERSION"] || "18.3"
+    ios_version = ENV["IOS_VERSION"] || "18.6"
     device_name = ENV["DEVICE_NAME"] || "iPhone 16"
-    destination = "platform=iOS Simulator,name=#{device_name},OS=#{ios_version}"
+    destination = "platform=iOS Simulator,OS=#{ios_version},name=#{device_name}"
     
     UI.message("📱 使用 iOS 版本: #{ios_version}")
     UI.message("📲 目标设备: #{device_name}")
@@ -19,6 +19,7 @@ platform :ios do
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: destination,
+      sdk: "iOS #{ios_version}",
       configuration: "Debug",
       skip_package_ipa: true,
       skip_archive: true,
@@ -30,9 +31,9 @@ platform :ios do
   desc "Run unit tests only"
   lane :unit_test do
     # 使用与build lane相同的动态配置
-    ios_version = ENV["IOS_VERSION"] || "18.3"
+    ios_version = ENV["IOS_VERSION"] || "18.6"
     device_name = ENV["DEVICE_NAME"] || "iPhone 16"
-    destination = "platform=iOS Simulator,name=#{device_name},OS=#{ios_version}"
+    destination = "platform=iOS Simulator,OS=#{ios_version},name=#{device_name}"
     
     UI.message("🧪 运行单元测试 - iOS: #{ios_version}, 设备: #{device_name}")
     
@@ -40,6 +41,7 @@ platform :ios do
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: destination,
+      sdk: "iOS #{ios_version}",
       code_coverage: true,
       skip_build: false,
       only_testing: ["ZHKLineTests"]
@@ -49,9 +51,9 @@ platform :ios do
   desc "Run UI tests only"
   lane :ui_test do
     # 使用与build lane相同的动态配置
-    ios_version = ENV["IOS_VERSION"] || "18.3"
+    ios_version = ENV["IOS_VERSION"] || "18.6"
     device_name = ENV["DEVICE_NAME"] || "iPhone 16"
-    destination = "platform=iOS Simulator,name=#{device_name},OS=#{ios_version}"
+    destination = "platform=iOS Simulator,OS=#{ios_version},name=#{device_name}"
     
     UI.message("🎯 运行UI测试 - iOS: #{ios_version}, 设备: #{device_name}")
     
@@ -59,6 +61,7 @@ platform :ios do
       project: "ZHKLine.xcodeproj",
       scheme: "ZHKLine",
       destination: destination,
+      sdk: "iOS #{ios_version}",
       code_coverage: true,
       skip_build: false,
       only_testing: ["ZHKLineUITests"]
