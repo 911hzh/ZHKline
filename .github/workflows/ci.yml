@@ -7,6 +7,20 @@ on:
     branches: [develop, main, master]
 
 jobs:
+  # # 防止直接推送到保护分支
+  # prevent-direct-push:
+  #   name: Prevent Direct Push
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+  #   steps:
+  #     - name: Block direct push to protected branch
+  #       run: |
+  #         echo "❌ 直接推送到保护分支被禁止!"
+  #         echo "请使用Pull Request进行代码合并"
+  #         echo "推送的分支: ${{ github.ref }}"
+  #         echo "触发事件: ${{ github.event_name }}"
+          exit 1
+
   swiftlint:
     name: SwiftLint
     runs-on: macos-15
