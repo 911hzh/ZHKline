@@ -24,8 +24,8 @@ class RSIIndicatorRenderer: BaseIndicatorRenderer {
         let allValues = rsi6Values + rsi12Values + rsi24Values
         guard !allValues.isEmpty else { return rsiLayer }
         
-        let minValue = allValues.min()!
-        let maxValue = allValues.max()!
+        let minValue = allValues.min() ?? 0
+        let maxValue = allValues.max() ?? 0
         
         // 确保有一定的范围，避免minValue == maxValue
         let range = maxValue - minValue

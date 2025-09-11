@@ -162,7 +162,9 @@ fileprivate extension KLineCrandleIndexUtil {
         }
         
         // 初始化最大值和最小值为第一个元素的价格
-        let firstData = showedArray.first!
+        guard let firstData = showedArray.first else {
+            return (maxPrice: 0.0, minPrice: 0.0)
+        }
         var maxPrice = max(firstData.klineData.high, firstData.klineData.low, firstData.klineData.open, firstData.klineData.close)
         var minPrice = min(firstData.klineData.high, firstData.klineData.low, firstData.klineData.open, firstData.klineData.close)
         
