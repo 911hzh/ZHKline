@@ -63,28 +63,15 @@ jobs:
 
       - name: Verify CI simulator availability
         run: |
-          echo "=== Xcode 版本信息 ==="
-          xcodebuild -version
-          echo ""
-
-          echo "=== 可用的 iOS 运行时 ==="
-          xcrun simctl list runtimes available | grep iOS
-          echo ""
-
-          echo "=== 可用的 iPhone 16 设备 ==="
-          xcrun simctl list devices available | grep "iPhone 16" | head -5
-          echo ""
-
-          echo "=== 自动选择最佳版本 ==="
-          # 获取最新可用的 iOS 版本
-          AVAILABLE_IOS=$(xcrun simctl list runtimes available | grep iOS | tail -1 | sed 's/.*iOS \([0-9]\+\.[0-9]\+\).*/\1/')
-          echo "检测到最新可用版本: iOS $AVAILABLE_IOS"
-          echo "IOS_VERSION=$AVAILABLE_IOS" >> $GITHUB_ENV
+          echo "=== Checking iOS 18.6 and iPhone 16 availability ==="
+          xcrun simctl list devices | grep "iPhone 16" | head -3
+          echo "Using: iPhone 16, iOS 18.6 (confirmed available in CI)"
 
       - name: Build with Fastlane
         run: |
-          echo "Building with iOS $IOS_VERSION + iPhone 16..."
-          echo "Using dynamically detected iOS version: $IOS_VERSION"
+          echo "Building with iOS 18.6 + iPhone 16..."
+          echo "设置环境变量 IOS_VERSION=18.6"
+          export IOS_VERSION="18.6"
           fastlane build
 
   # test:
