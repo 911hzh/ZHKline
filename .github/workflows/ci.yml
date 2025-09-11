@@ -43,7 +43,7 @@ jobs:
           xcodebuild clean build \
             -project ZHKLine.xcodeproj \
             -scheme ZHKLine \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.4' \
+            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE="" \
