@@ -28,11 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify Homebrew and Install SwiftLint
+      - name: Install SwiftLint
         run: |
-          echo "Checking Homebrew..."
-          brew --version
-          echo "Installing SwiftLint..."
+          echo "Installing SwiftLint via Homebrew..."
+          if ! command -v brew &> /dev/null; then
+            echo "Homebrew not found, installing..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
           brew install swiftlint
 
       - name: Run SwiftLint
@@ -52,12 +54,10 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Verify Homebrew and Install Fastlane
+      - name: Install Fastlane via Ruby Gem
         run: |
-          echo "Checking Homebrew..."
-          brew --version
-          echo "Installing Fastlane..."
-          brew install fastlane
+          echo "Installing Fastlane via Ruby gem..."
+          sudo gem install fastlane -v 2.228.0
           echo "Installed fastlane version:"
           fastlane --version
 
