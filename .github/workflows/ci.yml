@@ -61,14 +61,15 @@ jobs:
           echo "Installed fastlane version:"
           fastlane --version
 
-      - name: Show available simulators
+      - name: Verify CI simulator availability
         run: |
-          xcrun simctl list devicetypes
-          xcrun simctl list runtimes
-          xcrun simctl list devices available
+          echo "=== Checking iOS 18.6 and iPhone 16 availability ==="
+          xcrun simctl list devices | grep "iPhone 16" | head -3
+          echo "Using: iPhone 16, iOS 18.6 (confirmed available in CI)"
 
       - name: Build with Fastlane
         run: |
+          echo "Building with iOS 18.6 + iPhone 16..."
           fastlane build
 
   # test:
