@@ -61,18 +61,142 @@ jobs:
           echo "Installed fastlane version:"
           fastlane --version
 
-      - name: Verify CI simulator availability
+      - name: Auto-detect available simulators
         run: |
-          echo "=== Checking iOS 18.6 and iPhone 16 availability ==="
-          xcrun simctl list devices | grep "iPhone 16" | head -3
-          echo "Using: iPhone 16, iOS 18.6 (confirmed available in CI)"
+          echo "=== 🔍 完整的模拟器环境检测 ==="
+
+          echo "📋 1. Xcode 和工具链信息:"
+          xcodebuild -version
+          xcrun --show-sdk-path
+          xcrun --show-sdk-version
+
+          echo "📋 2. 所有可用的 iOS SDK:"
+          xcrun simctl list runtimes ios
+
+          echo "📋 3. 所有 iOS 版本:"
+          xcrun simctl list devices ios | grep -E "-- iOS [0-9]+\.[0-9]+ --"
+
+          echo "📋 4. 所有 iPhone 设备:"
+          xcrun simctl list devices | grep "iPhone" | head -10
+
+          echo "📋 5. 设备状态详情:"
+          xcrun simctl list devices available | grep "iPhone" | head -5
+
+          # 获取最新的 iOS 版本
+          LATEST_IOS=$(xcrun simctl list devices ios | grep -E "-- iOS [0-9]+\.[0-9]+ --" | tail -1 | sed 's/.*iOS \([0-9.]*\).*/\1/')
+          echo "🎯 检测到最新 iOS 版本: $LATEST_IOS"
+
+          # 检查是否成功获取版本
+          if [ -z "$LATEST_IOS" ]; then
+            echo "❌ 无法检测到 iOS 版本，显示完整输出:"
+            xcrun simctl list devices ios
+            echo "尝试使用备用方法:"
+            LATEST_IOS=$(xcrun simctl list runtimes | grep "iOS" | tail -1 | awk '{print $2}' | sed 's/[()]//')
+            echo "备用方法检测到: $LATEST_IOS"
+          fi
+
+          # 获取最新的 iPhone 设备
+          LATEST_IPHONE=$(xcrun simctl list devices | grep "iPhone" | grep -v "SE" | grep -v "mini" | grep "available" | tail -1 | sed 's/.*\(iPhone [0-9]*[a-zA-Z ]*\) (.*/\1/' | xargs)
+          echo "🎯 检测到最新 iPhone: $LATEST_IPHONE"
+
+          # 检查是否成功获取设备
+          if [ -z "$LATEST_IPHONE" ]; then
+            echo "❌ 无法检测到 iPhone 设备，尝试不过滤 available:"
+            LATEST_IPHONE=$(xcrun simctl list devices | grep "iPhone" | grep -v "SE" | grep -v "mini" | tail -1 | sed 's/.*\(iPhone [0-9]*[a-zA-Z ]*\) (.*/\1/' | xargs)
+            echo "不过滤检测到: $LATEST_IPHONE"
+            
+            if [ -z "$LATEST_IPHONE" ]; then
+              echo "❌ 仍然无法检测，使用默认值"
+              LATEST_IPHONE="iPhone 15"
+            fi
+          fi
+
+          # 构建 SDK 名称
+          IOS_MAJOR=$(echo $LATEST_IOS | cut -d. -f1)
+          IOS_MINOR=$(echo $LATEST_IOS | cut -d. -f2)
+          SDK_NAME="iphonesimulator${IOS_MAJOR}.${IOS_MINOR}"
+          echo "🛠️  构建 SDK 名称: $SDK_NAME"
+
+          # 验证 SDK 是否存在
+          echo "📋 6. 验证 SDK 是否存在:"
+          if xcrun --sdk "$SDK_NAME" --show-sdk-path 2>/dev/null; then
+            echo "✅ SDK $SDK_NAME 存在"
+          else
+            echo "❌ SDK $SDK_NAME 不存在，显示所有可用 SDK:"
+            xcodebuild -showsdks | grep "iphoneos\|iphonesimulator"
+            # 使用默认 SDK
+            SDK_NAME="iphonesimulator"
+            echo "🔄 使用默认 SDK: $SDK_NAME"
+          fi
+
+          # 验证模拟器是否存在
+          echo "📋 7. 验证模拟器配置:"
+          echo "目标配置: $LATEST_IPHONE, iOS $LATEST_IOS"
+          SIMULATOR_CHECK=$(xcrun simctl list devices | grep "$LATEST_IPHONE" | head -3)
+          if [ -n "$SIMULATOR_CHECK" ]; then
+            echo "✅ 找到匹配的模拟器:"
+            echo "$SIMULATOR_CHECK"
+          else
+            echo "❌ 未找到匹配的模拟器，显示所有可用 iPhone:"
+            xcrun simctl list devices | grep "iPhone"
+          fi
+
+          # 导出环境变量
+          echo "📋 8. 导出环境变量:"
+          echo "IOS_VERSION=$LATEST_IOS" >> $GITHUB_ENV
+          echo "DEVICE_NAME=$LATEST_IPHONE" >> $GITHUB_ENV  
+          echo "SDK_NAME=$SDK_NAME" >> $GITHUB_ENV
+          echo "✅ 环境变量已设置: iOS $LATEST_IOS, $LATEST_IPHONE, $SDK_NAME"
+
+      - name: Ensure simulator is available
+        run: |
+          echo "=== 🔧 确保模拟器可用 ==="
+
+          # 检查是否需要创建模拟器
+          SIMULATOR_EXISTS=$(xcrun simctl list devices | grep "$DEVICE_NAME" | grep "$IOS_VERSION" | head -1)
+
+          if [ -z "$SIMULATOR_EXISTS" ]; then
+            echo "❌ 未找到匹配的模拟器，尝试创建..."
+            
+            # 获取设备类型 ID
+            DEVICE_TYPE=$(xcrun simctl list devicetypes | grep "$DEVICE_NAME" | head -1 | awk -F'[()]' '{print $(NF-1)}')
+            echo "设备类型 ID: $DEVICE_TYPE"
+            
+            # 获取运行时 ID
+            RUNTIME_ID=$(xcrun simctl list runtimes | grep "iOS $IOS_VERSION" | head -1 | awk '{print $NF}')
+            echo "运行时 ID: $RUNTIME_ID"
+            
+            if [ -n "$DEVICE_TYPE" ] && [ -n "$RUNTIME_ID" ]; then
+              echo "创建模拟器: $DEVICE_NAME iOS $IOS_VERSION"
+              SIMULATOR_NAME="CI-$DEVICE_NAME-iOS$IOS_VERSION"
+              xcrun simctl create "$SIMULATOR_NAME" "$DEVICE_TYPE" "$RUNTIME_ID"
+              echo "✅ 模拟器创建成功: $SIMULATOR_NAME"
+              
+              # 更新设备名称为新创建的模拟器
+              echo "DEVICE_NAME=$SIMULATOR_NAME" >> $GITHUB_ENV
+            else
+              echo "❌ 无法获取设备类型或运行时 ID"
+              echo "可用设备类型:"
+              xcrun simctl list devicetypes | grep "iPhone"
+              echo "可用运行时:"
+              xcrun simctl list runtimes | grep "iOS"
+            fi
+          else
+            echo "✅ 找到匹配的模拟器:"
+            echo "$SIMULATOR_EXISTS"
+          fi
 
       - name: Build with Fastlane
         run: |
-          echo "Building with iOS 18.6 + iPhone 16..."
-          echo "设置环境变量 IOS_VERSION=18."
-          export IOS_VERSION="18.6"
-          export SDK_NAME="iphonesimulator18.6"
+          echo "=== 🚀 使用动态检测的配置构建 ==="
+          echo "iOS 版本: $IOS_VERSION"
+          echo "设备: $DEVICE_NAME"
+          echo "SDK: $SDK_NAME"
+
+          echo "📋 最终验证模拟器配置:"
+          xcrun simctl list devices | grep "$DEVICE_NAME" | head -1
+
+          echo "📋 开始 Fastlane 构建..."
           fastlane build
 
   # test:
