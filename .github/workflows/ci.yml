@@ -136,23 +136,23 @@ jobs:
 
           echo "✅ 构建成功完成！"
 
-  # test:
-  #   name: Test
-  #   runs-on: macos-15
-  #   needs: build
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Select Xcode version
-  #       run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-  #     - name: Install Fastlane
-  #       run: brew install fastlane
-  #     - name: Run Unit Tests
-  #       run: fastlane unit_test
-  #     - name: Run UI Tests
-  #       run: fastlane ui_test
-  #     - name: Upload test results
-  #       uses: actions/upload-artifact@v4
-  #       if: always()
-  #       with:
-  #         name: test-results
-  #         path: fastlane/test_output/
+  test:
+    name: Test
+    runs-on: macos-15
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+      - name: Install Fastlane
+        run: brew install fastlane
+      - name: Run Unit Tests
+        run: fastlane unit_test
+      - name: Run UI Tests
+        run: fastlane ui_test
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: fastlane/test_output/
