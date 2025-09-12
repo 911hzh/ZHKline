@@ -24,8 +24,8 @@ class WRIndicatorRenderer: BaseIndicatorRenderer {
         let allValues = wr6Values + wr10Values + wr14Values
         guard !allValues.isEmpty else { return wrLayer }
         
-        let minValue = allValues.min()!
-        let maxValue = allValues.max()!
+        let minValue = allValues.min() ?? 0
+        let maxValue = allValues.max() ?? 0
         
         // 确保有一定的范围，避免minValue == maxValue
         let range = maxValue - minValue

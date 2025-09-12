@@ -86,9 +86,11 @@ class KTechnicalIndicatorControlView: UIView {
         
 //        // 创建分割线（上下各留10像素间距）
         let separatorMargin: CGFloat = 10.0
-        separatorView = UIView(frame: CGRect(x: currentX, y: separatorMargin, width: separatorWidth, height: bounds.height - separatorMargin * 2))
-        separatorView?.backgroundColor = UIColor.lightGray
-        addSubview(separatorView!)
+        let separatorViewNew = UIView(frame: CGRect(x: currentX, y: separatorMargin, width: separatorWidth, height: bounds.height - separatorMargin * 2))
+        separatorViewNew.backgroundColor = UIColor.lightGray
+        separatorView = separatorViewNew
+        addSubview(separatorViewNew)
+        self.separatorView = separatorViewNew
         currentX += separatorWidth
 //        
 //        // 创建副图指标按钮

@@ -257,8 +257,8 @@ class BaseIndicatorRenderer: IndicatorRenderer {
             return (min: 0.0, max: 100.0) // 默认范围
         }
         
-        let minValue = allValues.min()!
-        let maxValue = allValues.max()!
+        let minValue = allValues.min() ?? 0
+        let maxValue = allValues.max() ?? 0
         
         // 确保有一定的范围，避免minValue == maxValue
         let range = maxValue - minValue

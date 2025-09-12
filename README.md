@@ -22,12 +22,16 @@
 - **副图指标**: MACD、KDJ、RSI(6,12,24)、WR(6,10,14)、VOL(成交量)
 - **实时计算**: 所有技术指标实时计算，无延迟显示
 - **多选支持**: 支持同时显示多个技术指标
-
 ### 🚀 卓越性能
 
 - **预计算优化**: 一次计算，多次复用
 - **流畅交互**: 60FPS 平滑滚动和缩放
 - **内存友好**: 智能内存管理，支持大数据量
+
+### UI结构体图：
+
+<img width="2536" height="940" alt="image" src="https://github.com/user-attachments/assets/a3c6e067-896b-4f8b-a2ee-f5fbbc89bab8" />
+
 
 ### 🎨 精美界面
 
@@ -241,8 +245,8 @@ ZHKLine 采用先进的架构设计，确保高性能和可维护性：
 git clone https://github.com/your-username/ZHKline.git
 cd ZHKline
 
-# 安装Git hooks和开发工具
-./scripts/install-hooks.sh
+# 安装开发工具
+brew install swiftlint
 
 # 验证SwiftLint安装
 swiftlint version

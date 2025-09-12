@@ -13,10 +13,14 @@ class KLineView: UIView {
     private let indicatorControlView: KTechnicalIndicatorControlView
     private var datas: [KLineModel] = []
     var heightChanged: ((_ height: CGFloat) -> Void)?
-    // 缩放手势管理器
-    private var scaleGestureManager: KLineScaleGestureManager!
-    // 点击和长按手势管理器
-    private var gestureManager: KLineTapLongGestureManager!
+    private lazy var scaleGestureManager: KLineScaleGestureManager = {
+        let gesture = KLineScaleGestureManager(delegate: self)
+        return gesture
+    }()
+    private lazy var gestureManager: KLineTapLongGestureManager = {
+        let gesture = KLineTapLongGestureManager(delegate: self)
+        return gesture
+    }()
     /**
      当前选择指标类型
      */
@@ -117,15 +121,13 @@ class KLineView: UIView {
     }
     // MARK: - Setup Methods
     
-    /// 设置缩放手势管理器
+    // /// 设置缩放手势管理器
     private func setupScaleGestureManager() {
-        scaleGestureManager = KLineScaleGestureManager(delegate: self)
         scaleGestureManager.addGestureToView(self)
     }
     
-    /// 设置点击和长按手势管理器
+    // /// 设置点击和长按手势管理器
     private func setupGestureManager() {
-        gestureManager = KLineTapLongGestureManager(delegate: self)
         gestureManager.addGestureToView(self)
     }
     
