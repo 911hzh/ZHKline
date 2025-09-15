@@ -1,0 +1,290 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build the project"
+  lane :build do
+    # 获取动态检测的配置
+    config = get_simulator_config()
+    destination = "platform=iOS Simulator,OS=#{config[:ios_version]},name=#{config[:device_name]}"
+    
+    UI.message("📱 使用 iOS 版本: #{config[:ios_version]}")
+    UI.message("📲 目标设备: #{config[:device_name]}")
+    UI.message("🛠️  使用 SDK: #{config[:sdk_name]}")
+    UI.message("🎯 构建目标: #{destination}")
+    
+    # 验证配置是否有效
+    UI.message("=== 🔍 模拟器配置最终验证 ===")
+    begin
+      simulator_list = sh("xcrun simctl list devices | grep '#{config[:device_name]}' | head -1", log: true)
+      if simulator_list.strip.empty?
+        UI.error("❌ 未找到指定的模拟器设备: #{config[:device_name]}")
+        UI.message("📋 所有可用的 iPhone 设备:")
+        sh("xcrun simctl list devices | grep 'iPhone'", log: true)
+        raise "模拟器设备不存在"
+      else
+        UI.success("✅ 模拟器设备验证通过:")
+        UI.message("  #{simulator_list.strip}")
+      end
+    rescue => e
+      UI.error("❌ 模拟器配置验证失败: #{e.message}")
+      UI.message("📋 调试信息 - 可用的 iPhone 设备:")
+      begin
+        sh("xcrun simctl list devices | grep 'iPhone' | head -10", log: true)
+      rescue
+        UI.error("无法获取设备列表")
+      end
+      raise "模拟器配置无效: #{e.message}"
+    end
+    
+    # 验证 SDK 配置
+    UI.message("=== 🔍 SDK 配置验证 ===")
+    begin
+      sdk_path = sh("xcrun --sdk #{config[:sdk_name]} --show-sdk-path", log: true)
+      UI.success("✅ SDK 验证通过:")
+      UI.message("  SDK 路径: #{sdk_path.strip}")
+    rescue => e
+      UI.error("❌ SDK 验证失败: #{e.message}")
+      UI.message("📋 所有可用的 SDK:")
+      begin
+        sh("xcodebuild -showsdks | grep simulator", log: true)
+      rescue
+        UI.error("无法获取 SDK 列表")
+      end
+      # 不抛出异常，使用默认 SDK
+      config[:sdk_name] = "iphonesimulator"
+      UI.message("🔄 使用默认 SDK: #{config[:sdk_name]}")
+    end
+    
+    UI.message("=== 🚀 开始 iOS 应用构建 ===")
+    UI.message("📋 构建参数:")
+    UI.message("  项目: ZHKLine.xcodeproj")
+    UI.message("  Scheme: ZHKLine")
+    UI.message("  目标: #{destination}")
+    UI.message("  SDK: #{config[:sdk_name]}")
+    UI.message("  配置: Debug")
+    
+    # 预构建检查
+    UI.message("=== 🔍 预构建检查 ===")
+    begin
+      UI.message("检查项目 scheme...")
+      schemes = sh("xcodebuild -project ZHKLine.xcodeproj -list", log: false)
+      UI.message("可用 schemes: #{schemes.split("\n").grep(/ZHKLine/).first&.strip}")
+      
+      UI.message("快速语法检查...")
+      sh("xcodebuild -project ZHKLine.xcodeproj -scheme ZHKLine -destination '#{destination}' -sdk #{config[:sdk_name]} -configuration Debug -dry-run", log: false)
+      UI.success("✅ 预构建检查通过")
+    rescue => e
+      UI.error("❌ 预构建检查失败: #{e.message}")
+      UI.message("继续尝试构建...")
+    end
+    
+    begin
+      build_ios_app(
+        project: "ZHKLine.xcodeproj",
+        scheme: "ZHKLine",
+        destination: destination,
+        sdk: config[:sdk_name],
+        configuration: "Debug",
+        skip_package_ipa: true,
+        skip_archive: true,
+        codesigning_identity: "",
+        xcargs: "CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' PROVISIONING_PROFILE='' -allowProvisioningUpdates",
+        # 减少详细日志以加快速度
+        verbose: false,
+        # 禁用自动签名检查
+        skip_profile_detection: true,
+        # 构建超时设置
+        buildlog_path: "./fastlane/build_logs",
+        # 添加超时设置
+        build_settings: {
+          "DEVELOPMENT_TEAM" => "",
+          "CODE_SIGN_IDENTITY" => "",
+          "CODE_SIGNING_REQUIRED" => "NO",
+          "CODE_SIGNING_ALLOWED" => "NO"
+        }
+      )
+      UI.success("🎉 构建成功完成!")
+    rescue => e
+      UI.error("❌ Fastlane 构建失败: #{e.message}")
+      UI.message("📋 错误详细信息:")
+      UI.message("  错误类型: #{e.class}")
+      UI.message("  错误消息: #{e.message}")
+      
+      # 如果是超时错误，尝试直接使用 xcodebuild
+      if e.message.include?("timed out") || e.message.include?("timeout")
+        UI.message("🔄 检测到超时错误，尝试直接使用 xcodebuild...")
+        begin
+          direct_build_command = [
+            "xcodebuild",
+            "-project ZHKLine.xcodeproj",
+            "-scheme ZHKLine",
+            "-destination '#{destination}'",
+            "-sdk #{config[:sdk_name]}",
+            "-configuration Debug",
+            "CODE_SIGNING_REQUIRED=NO",
+            "CODE_SIGN_IDENTITY=''",
+            "PROVISIONING_PROFILE=''",
+            "-allowProvisioningUpdates",
+            "build"
+          ].join(" ")
+          
+          UI.message("执行命令: #{direct_build_command}")
+          sh(direct_build_command, log: true)
+          UI.success("🎉 直接构建成功完成!")
+          return
+        rescue => direct_e
+          UI.error("❌ 直接构建也失败: #{direct_e.message}")
+        end
+      end
+      
+      # 尝试显示构建日志的最后几行
+      begin
+        UI.message("📋 最近的构建日志:")
+        log_files = Dir.glob("./fastlane/build_logs/**/*.log").sort_by { |f| File.mtime(f) }
+        if log_files.any?
+          latest_log = log_files.last
+          UI.message("最新日志文件: #{latest_log}")
+          log_content = File.read(latest_log).split("\n").last(20)
+          log_content.each { |line| UI.message("  #{line}") }
+        end
+      rescue => log_e
+        UI.error("无法读取构建日志: #{log_e.message}")
+      end
+      
+      raise e
+    end
+  end
+
+  desc "Run unit tests only"
+  lane :unit_test do
+    # 获取与build lane相同的动态配置
+    config = get_simulator_config()
+    destination = "platform=iOS Simulator,OS=#{config[:ios_version]},name=#{config[:device_name]}"
+    
+    UI.message("🧪 运行单元测试 - iOS: #{config[:ios_version]}, 设备: #{config[:device_name]}, SDK: #{config[:sdk_name]}")
+    
+    run_tests(
+      project: "ZHKLine.xcodeproj",
+      scheme: "ZHKLine",
+      destination: destination,
+      sdk: config[:sdk_name],
+      code_coverage: true,
+      skip_build: false,
+      only_testing: ["ZHKLineTests"]
+    )
+  end
+
+  desc "Run UI tests only"
+  lane :ui_test do
+    # 获取与build lane相同的动态配置
+    config = get_simulator_config()
+    destination = "platform=iOS Simulator,OS=#{config[:ios_version]},name=#{config[:device_name]}"
+    
+    UI.message("🎯 运行UI测试 - iOS: #{config[:ios_version]}, 设备: #{config[:device_name]}, SDK: #{config[:sdk_name]}")
+    
+    run_tests(
+      project: "ZHKLine.xcodeproj",
+      scheme: "ZHKLine",
+      destination: destination,
+      sdk: config[:sdk_name],
+      code_coverage: true,
+      skip_build: false,
+      only_testing: ["ZHKLineUITests"]
+    )
+  end
+
+  # 私有方法：获取模拟器配置
+  private_lane :get_simulator_config do
+    UI.message("=== 🔧 Fastlane 模拟器配置检测 ===")
+    
+    ios_version = ENV["IOS_VERSION"]
+    device_name = ENV["DEVICE_NAME"]
+    sdk_name = ENV["SDK_NAME"]
+    
+    UI.message("📋 环境变量检查:")
+    UI.message("  IOS_VERSION: #{ios_version || '未设置'}")
+    UI.message("  DEVICE_NAME: #{device_name || '未设置'}")
+    UI.message("  SDK_NAME: #{sdk_name || '未设置'}")
+    
+    # 如果环境变量未设置，使用fallback值（本地开发）
+    if ios_version.nil? || ios_version.empty?
+      UI.message("🔍 未检测到环境变量，使用本地自动检测...")
+      
+      begin
+        UI.message("检测可用的 iOS 版本...")
+        ios_output = sh("xcrun simctl list devices ios | grep 'iOS' | grep -o 'iOS [0-9]*\\.[0-9]*' | tail -1", log: true)
+        ios_version = ios_output.strip.gsub('iOS ', '') rescue nil
+        
+        if ios_version.nil?
+          UI.message("尝试备用方法检测 iOS 版本...")
+          runtime_output = sh("xcrun simctl list runtimes | grep iOS | tail -1", log: true)
+          ios_version = runtime_output.match(/iOS (\d+\.\d+)/)[1] rescue "18.2"
+        end
+        UI.message("检测到 iOS 版本: #{ios_version}")
+      rescue => e
+        UI.error("检测 iOS 版本失败: #{e.message}")
+        ios_version = "18.2"
+        UI.message("使用默认 iOS 版本: #{ios_version}")
+      end
+      
+      begin
+        UI.message("检测可用的 iPhone 设备...")
+        device_output = sh("xcrun simctl list devices | grep 'iPhone' | grep -v 'SE' | grep -v 'mini' | tail -1", log: true)
+        device_name = device_output.match(/(iPhone [0-9]+[a-zA-Z ]*)/)[1].strip rescue nil
+        
+        if device_name.nil?
+          UI.message("未检测到设备，显示所有可用设备:")
+          sh("xcrun simctl list devices | grep 'iPhone'", log: true)
+          device_name = "iPhone 15"
+        end
+        UI.message("检测到设备: #{device_name}")
+      rescue => e
+        UI.error("检测设备失败: #{e.message}")
+        device_name = "iPhone 15"
+        UI.message("使用默认设备: #{device_name}")
+      end
+      
+      ios_major = ios_version.split('.')[0]
+      ios_minor = ios_version.split('.')[1]
+      sdk_name = "iphonesimulator#{ios_major}.#{ios_minor}"
+      
+      # 验证 SDK 是否存在
+      begin
+        sh("xcrun --sdk #{sdk_name} --show-sdk-path", log: false)
+        UI.message("✅ SDK #{sdk_name} 验证成功")
+      rescue
+        UI.message("❌ SDK #{sdk_name} 不存在，使用默认 SDK")
+        sdk_name = "iphonesimulator"
+      end
+    end
+    
+    # 验证配置一致性
+    sdk_version = sdk_name.gsub('iphonesimulator', '') rescue nil
+    if sdk_version && !sdk_version.empty? && sdk_version != ios_version
+      UI.message("⚠️  版本不匹配，统一为 SDK 版本: #{sdk_version}")
+      ios_version = sdk_version
+    end
+    
+    config = {
+      ios_version: ios_version,
+      device_name: device_name,
+      sdk_name: sdk_name
+    }
+    
+    UI.message("📋 最终配置 (一致性验证后):")
+    UI.message("  iOS 版本: #{config[:ios_version]}")
+    UI.message("  设备名称: #{config[:device_name]}")
+    UI.message("  SDK 名称: #{config[:sdk_name]}")
+    
+    config
+  end
+
+  desc "Run all tests (unit + UI)"
+  lane :test do
+    unit_test
+    ui_test
+  end
+end
