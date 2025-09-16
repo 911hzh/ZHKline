@@ -12,6 +12,7 @@ excluded:
   - ZHKLine/Assets.xcassets/
   - ZHKLine/Base.lproj/
   - ZHKLine/huobi_image.jpg
+  - ZHKLineTests/
 
 # 只保留强制解包检查规则
 only_rules:
