@@ -108,12 +108,14 @@ jobs:
           # 清理可能的缓存干扰
           rm -rf ~/Library/Developer/Xcode/DerivedData/ZHKLine-*/Build/Products/Debug-iphonesimulator/*UITests*
 
-          # 直接运行单元测试目标
+          # 使用scheme但只运行单元测试
           xcodebuild test \
             -project ZHKLine.xcodeproj \
-            -target ZHKLineTests \
+            -scheme ZHKLine \
             -destination "platform=iOS Simulator,name=$SELECTED_DEVICE,OS=latest" \
             -configuration Debug \
+            -only-testing ZHKLineTests \
+            -skip-testing ZHKLineUITests \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE="" \
@@ -122,3 +124,5 @@ jobs:
             -resultBundlePath TestResults.xcresult
 
           echo "✅ 单元测试完成！"
+// 本地单独测试test 的脚本
+# xcodebuild test -project ZHKLine.xcodeproj -scheme ZHKLine -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" -configuration Debug -only-testing ZHKLineTests -skip-testing ZHKLineUITests CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" PROVISIONING_PROFILE="" DEVELOPMENT_TEAM="" IPHONEOS_DEPLOYMENT_TARGET=15.6
