@@ -15,20 +15,15 @@ jobs:
   prevent-direct-push:
     name: Prevent Direct Push
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
-      - name: Check if direct push to protected branch
+      - name: Block direct push to protected branch
         run: |
-          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" =~ ^refs/heads/(develop|main|master)$ ]]; then
-            echo "❌ 直接推送到保护分支被禁止!"
-            echo "请使用Pull Request进行代码合并"
-            echo "推送的分支: ${{ github.ref }}"
-            echo "触发事件: ${{ github.event_name }}"
-            exit 1
-          else
-            echo "✅ 通过PR方式合并，允许继续"
-            echo "触发事件: ${{ github.event_name }}"
-            echo "分支: ${{ github.ref }}"
-          fi
+          echo "❌ 直接推送到保护分支被禁止!"
+          echo "请使用Pull Request进行代码合并"
+          echo "推送的分支: ${{ github.ref }}"
+          echo "触发事件: ${{ github.event_name }}"
+          exit 1
 
   swiftlint:
     name: SwiftLint
@@ -45,8 +40,17 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: macos-15
-    steps:tiao
+    steps:
       - uses: actions/checkout@v4
+
+      # 暂时禁用缓存以避免UI测试干扰
+      # - name: Cache Xcode derived data
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/Library/Developer/Xcode/DerivedData
+      #     key: ${{ runner.os }}-xcode-derived-data-${{ hashFiles('**/ZHKLine.xcodeproj/project.pbxproj') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-xcode-derived-data-
 
       - name: Setup Xcode and Environment
         run: |
