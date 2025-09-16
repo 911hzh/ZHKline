@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [develop, main, master]
 
+env:
+  XCODE_VERSION: "16.4"
+  IOS_DEPLOYMENT_TARGET: "15.6"
+
 jobs:
   # 防止直接推送到保护分支
   prevent-direct-push:
@@ -29,17 +33,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install SwiftLint
-        run: |
-          echo "Installing SwiftLint via Homebrew..."
-          if ! command -v brew &> /dev/null; then
-            echo "Homebrew not found, installing..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          fi
-          brew install swiftlint
+        run: brew install swiftlint
 
       - name: Run SwiftLint
-        run: |
-          swiftlint --reporter github-actions-logging --strict
+        run: swiftlint --reporter github-actions-logging --strict
 
   build:
     name: Build
@@ -50,12 +47,12 @@ jobs:
 
       - name: Setup Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
           xcodebuild -version
 
       - name: Install iOS Platform
         run: |
-          echo "=== 📱 安装 iOS 平台 ==="
+          echo "=== 📱 检查和安装 iOS 平台 ==="
 
           # 显示当前已安装的平台
           echo "📋 当前已安装的平台:"
@@ -66,33 +63,14 @@ jobs:
           xcrun simctl list runtimes
 
           # 尝试安装最新的 iOS 模拟器运行时
-          echo "📥 尝试安装 iOS 模拟器运行时..."
+          echo "📥 检查是否需要安装 iOS 模拟器运行时..."
 
-          # 方法1: 使用 xcodebuild 安装 iOS 平台
-          echo "📥 尝试下载 iOS 平台..."
-          xcodebuild -downloadPlatform iOS || echo "方法1失败，继续尝试其他方法"
+          # 使用 Xcode 16.4 自带的最新模拟器
+          echo "✅ 使用 Xcode ${{ env.XCODE_VERSION }} 自带的最新模拟器平台"
 
-          # 方法2: 使用 Xcode 直接安装组件
-          echo "📥 尝试安装 iOS 18.2 运行时..."
-          sudo xcode-select --install 2>/dev/null || echo "command line tools 已安装"
-
-          # 方法3: 检查并安装缺失的模拟器
-          echo "📥 检查模拟器安装状态..."
-          xcrun simctl list runtimes | grep iOS || echo "需要安装 iOS 运行时"
-
-          # 尝试使用较老但稳定的 iOS 版本
-          echo "🔄 如果 18.2 不可用，将使用可用的最新版本"
-
-          # 显示安装后的状态
-          echo "📋 安装后的平台状态:"
-          xcodebuild -showsdks | grep simulator
-
-          echo "📋 安装后的运行时:"
-          xcrun simctl list runtimes ios
-
-      - name: Simple Build
+      - name: Build
         run: |
-          echo "=== 🚀 简单直接的 iOS 构建 ==="
+          echo "🚀 开始构建..."
 
           # 显示可用设备（调试用）
           echo "📱 可用的模拟器设备："
@@ -122,7 +100,7 @@ jobs:
             SELECTED_DEVICE="iPhone 15"
           fi
 
-          # 使用最简单的参数
+          # 使用最新可用的模拟器系统版本
           xcodebuild \
             -project ZHKLine.xcodeproj \
             -scheme ZHKLine \
@@ -132,6 +110,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE="" \
             DEVELOPMENT_TEAM="" \
+            IPHONEOS_DEPLOYMENT_TARGET=${{ env.IOS_DEPLOYMENT_TARGET }} \
             build
 
           echo "✅ 构建成功完成！"
