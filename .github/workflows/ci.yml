@@ -43,13 +43,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Xcode derived data
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-xcode-derived-data-${{ hashFiles('**/ZHKLine.xcodeproj/project.pbxproj') }}
-          restore-keys: |
-            ${{ runner.os }}-xcode-derived-data-
+      # 暂时禁用缓存以避免UI测试干扰
+      # - name: Cache Xcode derived data
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/Library/Developer/Xcode/DerivedData
+      #     key: ${{ runner.os }}-xcode-derived-data-${{ hashFiles('**/ZHKLine.xcodeproj/project.pbxproj') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-xcode-derived-data-
 
       - name: Setup Xcode and Environment
         run: |
@@ -78,14 +79,16 @@ jobs:
           # 设置环境变量供后续步骤使用
           echo "SELECTED_DEVICE=$SELECTED_DEVICE" >> $GITHUB_ENV
 
-      - name: Build Project
+      - name: Build Project (Unit Tests Only)
         run: |
           echo "🚀 开始构建项目..."
           echo "📱 使用设备: $SELECTED_DEVICE"
 
+          # 只构建主应用和单元测试目标
           xcodebuild \
             -project ZHKLine.xcodeproj \
-            -scheme ZHKLine \
+            -target ZHKLine \
+            -target ZHKLineTests \
             -destination "platform=iOS Simulator,name=$SELECTED_DEVICE,OS=latest" \
             -configuration Debug \
             CODE_SIGNING_REQUIRED=NO \
@@ -97,17 +100,20 @@ jobs:
 
           echo "✅ 构建成功完成！"
 
-      - name: Run Unit Tests
+      - name: Run Unit Tests Only
         run: |
-          echo "🧪 开始运行单元测试..."
+          echo "🧪 开始运行单元测试（仅单元测试）..."
           echo "📱 使用设备: $SELECTED_DEVICE"
 
+          # 清理可能的缓存干扰
+          rm -rf ~/Library/Developer/Xcode/DerivedData/ZHKLine-*/Build/Products/Debug-iphonesimulator/*UITests*
+
+          # 直接运行单元测试目标
           xcodebuild test \
             -project ZHKLine.xcodeproj \
-            -scheme ZHKLine \
+            -target ZHKLineTests \
             -destination "platform=iOS Simulator,name=$SELECTED_DEVICE,OS=latest" \
             -configuration Debug \
-            -only-testing ZHKLineTests \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE="" \
