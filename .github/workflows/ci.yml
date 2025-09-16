@@ -79,7 +79,7 @@ jobs:
           # 设置环境变量供后续步骤使用
           echo "SELECTED_DEVICE=$SELECTED_DEVICE" >> $GITHUB_ENV
 
-      - name: Build Project (Unit Tests Only)
+      - name: Build
         run: |
           echo "🚀 开始构建项目..."
           echo "📱 使用设备: $SELECTED_DEVICE"
