@@ -28,7 +28,6 @@ jobs:
   swiftlint:
     name: SwiftLint
     runs-on: macos-15
-
     steps:
       - uses: actions/checkout@v4
 
@@ -38,52 +37,28 @@ jobs:
       - name: Run SwiftLint
         run: swiftlint --reporter github-actions-logging --strict
 
-  build:
-    name: Build
+  build-and-test:
+    name: Build and Test
     runs-on: macos-15
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Xcode
+      - name: Cache Xcode derived data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-xcode-derived-data-${{ hashFiles('**/ZHKLine.xcodeproj/project.pbxproj') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-derived-data-
+
+      - name: Setup Xcode and Environment
         run: |
+          echo "🔧 设置 Xcode 环境..."
           sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
           xcodebuild -version
 
-      - name: Install iOS Platform
-        run: |
-          echo "=== 📱 检查和安装 iOS 平台 ==="
-
-          # 显示当前已安装的平台
-          echo "📋 当前已安装的平台:"
-          xcodebuild -showsdks
-
-          # 显示可用的运行时
-          echo "📋 当前可用的运行时:"
-          xcrun simctl list runtimes
-
-          # 尝试安装最新的 iOS 模拟器运行时
-          echo "📥 检查是否需要安装 iOS 模拟器运行时..."
-
-          # 使用 Xcode 16.4 自带的最新模拟器
-          echo "✅ 使用 Xcode ${{ env.XCODE_VERSION }} 自带的最新模拟器平台"
-
-      - name: Build
-        run: |
-          echo "🚀 开始构建..."
-
-          # 显示可用设备（调试用）
-          echo "📱 可用的模拟器设备："
-          xcrun simctl list devices | grep "iPhone" | head -5
-
-          # 显示可用的 SDK
-          echo "📱 可用的 iOS SDK："
-          xcodebuild -showsdks | grep simulator
-
-          # 智能选择可用的目标
-          echo "🎯 智能选择构建目标..."
-
-          # 尝试多个设备选项（按优先级）
+          echo "📱 检查可用的模拟器设备..."
+          # 智能选择可用的模拟器设备
           DEVICES=("iPhone 16" "iPhone 15" "iPhone 14" "iPhone 13")
           SELECTED_DEVICE=""
 
@@ -100,7 +75,14 @@ jobs:
             SELECTED_DEVICE="iPhone 15"
           fi
 
-          # 使用最新可用的模拟器系统版本
+          # 设置环境变量供后续步骤使用
+          echo "SELECTED_DEVICE=$SELECTED_DEVICE" >> $GITHUB_ENV
+
+      - name: Build Project
+        run: |
+          echo "🚀 开始构建项目..."
+          echo "📱 使用设备: $SELECTED_DEVICE"
+
           xcodebuild \
             -project ZHKLine.xcodeproj \
             -scheme ZHKLine \
@@ -115,23 +97,21 @@ jobs:
 
           echo "✅ 构建成功完成！"
 
-  # test:
-  #   name: Test
-  #   runs-on: macos-15
-  #   needs: build
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Select Xcode version
-  #       run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-  #     - name: Install Fastlane
-  #       run: brew install fastlane
-  #     - name: Run Unit Tests
-  #       run: fastlane unit_test
-  #     - name: Run UI Tests
-  #       run: fastlane ui_test
-  #     - name: Upload test results
-  #       uses: actions/upload-artifact@v4
-  #       if: always()
-  #       with:
-  #         name: test-results
-  #         path: fastlane/test_output/
+      - name: Run Unit Tests
+        run: |
+          echo "🧪 开始运行单元测试..."
+          echo "📱 使用设备: $SELECTED_DEVICE"
+
+          xcodebuild test \
+            -project ZHKLine.xcodeproj \
+            -scheme ZHKLine \
+            -destination "platform=iOS Simulator,name=$SELECTED_DEVICE,OS=latest" \
+            -configuration Debug \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE="" \
+            DEVELOPMENT_TEAM="" \
+            IPHONEOS_DEPLOYMENT_TARGET=${{ env.IOS_DEPLOYMENT_TARGET }} \
+            -resultBundlePath TestResults.xcresult
+
+          echo "✅ 单元测试完成！"
