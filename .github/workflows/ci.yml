@@ -30,151 +30,39 @@ jobs:
     runs-on: macos-15
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Cache SwiftLint
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/swiftlint
-          key: ${{ runner.os }}-swiftlint-${{ hashFiles('**/*.swift') }}
-          restore-keys: |
-            ${{ runner.os }}-swiftlint-
+      - uses: actions/checkout@v4
 
       - name: Install SwiftLint
-        run: |
-          echo "📦 安装 SwiftLint..."
-          if ! command -v swiftlint &> /dev/null; then
-            if ! command -v brew &> /dev/null; then
-              echo "安装 Homebrew..."
-              /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            fi
-            brew install swiftlint
-          else
-            echo "✅ SwiftLint 已安装"
-          fi
+        run: brew install swiftlint
 
       - name: Run SwiftLint
-        run: |
-          echo "🔍 运行 SwiftLint 检查..."
-          swiftlint --reporter github-actions-logging --strict
+        run: swiftlint --reporter github-actions-logging --strict
 
   build:
     name: Build
     runs-on: macos-15
-    # 让build job依赖swiftlint，但并行运行其他检查
-    needs: []
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Cache Xcode DerivedData
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData
-            ~/.cache/xcodebuild
-          key: ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-${{ hashFiles('**/*.swift', '*.pbxproj') }}
-          restore-keys: |
-            ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-
-            ${{ runner.os }}-xcode-
+      - uses: actions/checkout@v4
 
       - name: Setup Xcode
         run: |
-          echo "🛠 设置 Xcode ${{ env.XCODE_VERSION }}..."
           sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
           xcodebuild -version
-          echo "📱 iOS 部署目标: ${{ env.IOS_DEPLOYMENT_TARGET }}"
 
-      - name: Cache Ruby Gems
-        uses: actions/cache@v4
-        with:
-          path: ~/.gem
-          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-gems-
-
-      - name: Setup Build Tools
+      - name: Build
         run: |
-          echo "🔧 安装构建工具..."
-          # 安装xcpretty用于美化输出
-          if ! command -v xcpretty &> /dev/null; then
-            echo "📦 安装 xcpretty..."
-            gem install xcpretty
-          else
-            echo "✅ xcpretty 已安装"
-          fi
-
-      - name: Setup iOS Platform
-        run: |
-          echo "📱 检查 iOS 平台和模拟器..."
-
-          # 显示当前已安装的SDK和运行时
-          echo "📋 当前可用的 iOS SDK:"
-          xcodebuild -showsdks | grep iphoneos || echo "需要检查 iOS SDK"
-
-          echo "📋 当前可用的模拟器 SDK:"
-          xcodebuild -showsdks | grep iphonesimulator || echo "需要检查模拟器 SDK"
-
-          echo "📋 当前可用的运行时:"
-          xcrun simctl list runtimes | grep iOS || echo "检查运行时状态"
-
-          # 优化：使用Xcode已有的最新模拟器，不强制下载
-          echo "✅ 使用 Xcode ${{ env.XCODE_VERSION }} 自带的最新模拟器平台"
-
-      - name: Optimized Build
-        run: |
-          echo "🚀 开始优化构建过程..."
-
-          # 智能选择构建目标和SDK
-          echo "🎯 智能选择构建目标..."
-
-          # 获取最新的iOS模拟器SDK
-          LATEST_IOS_SDK=$(xcodebuild -showsdks | grep iphonesimulator | tail -1 | awk '{print $NF}')
-          echo "📱 使用 iOS SDK: $LATEST_IOS_SDK"
-
-          # 获取可用的iPhone设备（按优先级）
-          DEVICES=("iPhone 16 Pro" "iPhone 16" "iPhone 15 Pro" "iPhone 15" "iPhone 14" "iPhone 13")
-          SELECTED_DEVICE=""
-
-          for device in "${DEVICES[@]}"; do
-            if xcrun simctl list devices available | grep -q "$device"; then
-              SELECTED_DEVICE="$device"
-              echo "✅ 选择设备: $SELECTED_DEVICE"
-              break
-            fi
-          done
-
-          # 如果没找到特定设备，使用通用设备
-          if [ -z "$SELECTED_DEVICE" ]; then
-            SELECTED_DEVICE=$(xcrun simctl list devices available | grep iPhone | head -1 | sed 's/.*iPhone/iPhone/' | sed 's/ (.*//')
-            echo "🔄 使用可用设备: $SELECTED_DEVICE"
-          fi
-
-          # 优化的构建命令
-          echo "🔨 开始构建..."
           xcodebuild \
             -project ZHKLine.xcodeproj \
             -scheme ZHKLine \
-            -destination "platform=iOS Simulator,name=$SELECTED_DEVICE" \
+            -destination "platform=iOS Simulator,name=iPhone 15" \
             -configuration Debug \
-            -sdk iphonesimulator \
-            -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE="" \
             DEVELOPMENT_TEAM="" \
             IPHONEOS_DEPLOYMENT_TARGET=${{ env.IOS_DEPLOYMENT_TARGET }} \
-            ONLY_ACTIVE_ARCH=YES \
-            build \
-            | xcpretty
-
-          echo "✅ 构建成功完成！"
+            build
 
   # test:
   #   name: Test
