@@ -38,7 +38,7 @@ jobs:
         run: swiftlint --reporter github-actions-logging --strict
 
   build-and-test:
-    name: Build and Test
+    name: Build
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
